@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProcessingType {
+  CONVERT
+  REMOVE_BG
+  RESIZE
+  COMPRESS
+  WATERMARK
+  FILTERS
+  METADATA_STRIP
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id             String           @id @default(cuid())
+  clerkId        String           @unique
+  email          String           @unique
+  name           String?
+  imageUrl       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  processingJobs ProcessingJob[]
+}
+
+model ProcessingJob {
+  id               String           @id @default(cuid())
+  userId           String?
+  user             User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type             ProcessingType
+  status           ProcessingStatus @default(PENDING)
+  inputFileName    String
+  inputFileSize    Int
+  inputMimeType    String
+  outputFileName   String?
+  outputFileSize   Int?
+  outputMimeType   String?
+  inputStorageKey  String
+  outputStorageKey String?
+  options          Json?
+  errorMessage     String?
+  processingTimeMs Int?
+  createdAt        DateTime         @default(now())
+  completedAt      DateTime?
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
+}
