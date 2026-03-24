@@ -334,7 +334,7 @@ export function MetadataViewer() {
               {stripResult && (
                 <DownloadButton
                   downloadUrl={stripResult.downloadUrl}
-                  fileName={files[0]?.name.replace(/\.[^.]+$/, "-stripped.$&").replace(".", "") || "stripped-image"}
+                  fileName={files[0]?.name.replace(/\.([^.]+)$/, "-stripped.$1") || "stripped-image"}
                 />
               )}
             </CardContent>
