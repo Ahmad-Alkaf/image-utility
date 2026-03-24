@@ -1,5 +1,6 @@
 import { SignUp } from "@clerk/nextjs";
 import type { Metadata } from "next";
+import { AuthLayout } from "@/components/shared/auth-layout";
 
 export const metadata: Metadata = {
   title: "Sign Up",
@@ -7,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function SignUpPage() {
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
+    <AuthLayout>
       <SignUp />
-    </div>
+    </AuthLayout>
   );
 }
