@@ -32,8 +32,9 @@ export default function HomePage() {
             </h1>
 
             <p className="animate-fade-in-up mx-auto max-w-lg text-lg leading-relaxed text-muted-foreground [animation-delay:160ms]">
-              Convert, compress, resize, remove backgrounds, and more — all in
-              your browser. No installs, no sign-ups for basic tools.
+              Convert, compress, resize, remove backgrounds, and more — fast,
+              private, and hassle-free. No credit card, no sign-ups for basic
+              tools.
             </p>
 
             <div className="animate-fade-in-up flex flex-wrap items-center justify-center gap-3 pt-1 [animation-delay:240ms]">
