@@ -30,7 +30,7 @@ const FORMAT_OPTIONS = [
 
 export function ConvertForm() {
   const [targetFormat, setTargetFormat] = useState("webp");
-  const [quality, setQuality] = useState(80);
+  const [quality, setQuality] = useState(100);
   const [stripMetadata, setStripMetadata] = useState(false);
 
   const {
@@ -64,7 +64,7 @@ export function ConvertForm() {
     clearFiles();
     resetProcessing();
     setTargetFormat("webp");
-    setQuality(80);
+    setQuality(100);
     setStripMetadata(false);
   };
 

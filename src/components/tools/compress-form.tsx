@@ -36,7 +36,7 @@ function formatFileSize(bytes: number): string {
 
 export function CompressForm() {
   const [mode, setMode] = useState<"auto" | "manual">("auto");
-  const [quality, setQuality] = useState(80);
+  const [quality, setQuality] = useState(100);
   const [format, setFormat] = useState("original");
 
   const { files, addFiles, removeFile, clearFiles } = useImageUpload();
@@ -58,7 +58,7 @@ export function CompressForm() {
       "options",
       JSON.stringify({
         mode,
-        quality: mode === "auto" ? 80 : quality,
+        quality: mode === "auto" ? 100 : quality,
         ...(format !== "original" && { format }),
       })
     );

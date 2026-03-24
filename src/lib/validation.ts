@@ -3,7 +3,7 @@ import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from "@/lib/constants";
 
 export const convertSchema = z.object({
   format: z.enum(SUPPORTED_FORMATS as [string, ...string[]]),
-  quality: z.number().min(1).max(100).default(80),
+  quality: z.number().min(1).max(100).default(100),
   stripMetadata: z.boolean().default(false),
 });
 
@@ -32,7 +32,7 @@ export const resizeSchema = z.object({
 
 export const compressSchema = z.object({
   mode: z.enum(["auto", "manual"]).default("auto"),
-  quality: z.number().min(1).max(100).default(80),
+  quality: z.number().min(1).max(100).default(100),
   format: z.enum(SUPPORTED_FORMATS as [string, ...string[]]).optional(),
 });
 
