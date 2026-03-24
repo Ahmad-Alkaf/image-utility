@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { useProcessing } from "@/hooks/use-processing";
+import { SignInGate } from "@/components/shared/sign-in-gate";
 import { ImageDropzone } from "@/components/shared/image-dropzone";
 import { ImagePreview } from "@/components/shared/image-preview";
 import { ProcessingStatus } from "@/components/shared/processing-status";
@@ -25,8 +25,6 @@ const PRESETS: { value: Preset; label: string }[] = [
 ];
 
 export function FiltersForm() {
-  const { isSignedIn } = useUser();
-
   const [preset, setPreset] = useState<Preset | undefined>(undefined);
   const [brightness, setBrightness] = useState(0);
   const [contrast, setContrast] = useState(0);
@@ -50,17 +48,6 @@ export function FiltersForm() {
     error,
     reset: resetProcessing,
   } = useProcessing();
-
-  if (!isSignedIn) {
-    return (
-      <div className="rounded-lg border border-dashed p-12 text-center">
-        <p className="text-lg font-medium">Sign in required</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Please sign in to use the filters & adjustments tool.
-        </p>
-      </div>
-    );
-  }
 
   const handleSubmit = async () => {
     if (files.length === 0) return;
@@ -109,6 +96,7 @@ export function FiltersForm() {
     .join(" ");
 
   return (
+    <SignInGate toolName="filters & adjustments">
     <div className="space-y-6">
       <ImageDropzone
         onFilesSelected={setFiles}
@@ -282,5 +270,6 @@ export function FiltersForm() {
         />
       )}
     </div>
+    </SignInGate>
   );
 }

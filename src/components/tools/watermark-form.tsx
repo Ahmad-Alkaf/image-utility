@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useUser } from "@clerk/nextjs";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { useProcessing } from "@/hooks/use-processing";
+import { SignInGate } from "@/components/shared/sign-in-gate";
 import { ImageDropzone } from "@/components/shared/image-dropzone";
 import { ImagePreview } from "@/components/shared/image-preview";
 import { ProcessingStatus } from "@/components/shared/processing-status";
@@ -13,8 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Upload, Lock } from "lucide-react";
+import { Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ACCEPTED_IMAGE_TYPES } from "@/lib/constants";
 
@@ -31,7 +30,6 @@ const POSITIONS = [
 ];
 
 export function WatermarkForm() {
-  const { isSignedIn, isLoaded } = useUser();
   const [watermarkType, setWatermarkType] = useState<"text" | "image">("text");
   const [text, setText] = useState("Watermark");
   const [fontSize, setFontSize] = useState(48);
@@ -56,25 +54,6 @@ export function WatermarkForm() {
     error,
     reset: resetProcessing,
   } = useProcessing();
-
-  // Auth wall for unauthenticated users
-  if (isLoaded && !isSignedIn) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center gap-4 p-12">
-          <div className="rounded-full bg-muted p-4">
-            <Lock className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <div className="text-center">
-            <p className="text-lg font-medium">Sign in required</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Please sign in to use the watermark tool.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   const handleSubmit = async () => {
     if (files.length === 0) return;
@@ -123,6 +102,7 @@ export function WatermarkForm() {
   };
 
   return (
+    <SignInGate toolName="watermark">
     <div className="space-y-6">
       <ImageDropzone
         onFilesSelected={(selected) => setFiles(selected)}
@@ -314,5 +294,6 @@ export function WatermarkForm() {
         />
       )}
     </div>
+    </SignInGate>
   );
 }

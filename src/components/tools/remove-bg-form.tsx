@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { useProcessing } from "@/hooks/use-processing";
+import { SignInGate } from "@/components/shared/sign-in-gate";
 import { ImageDropzone } from "@/components/shared/image-dropzone";
 import { ImagePreview } from "@/components/shared/image-preview";
 import { ProcessingStatus } from "@/components/shared/processing-status";
@@ -17,7 +17,6 @@ import { Label } from "@/components/ui/label";
 type BackgroundType = "transparent" | "color" | "blur";
 
 export function RemoveBgForm() {
-  const { isSignedIn } = useUser();
   const [backgroundType, setBackgroundType] =
     useState<BackgroundType>("transparent");
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
@@ -37,17 +36,6 @@ export function RemoveBgForm() {
     error,
     reset: resetProcessing,
   } = useProcessing();
-
-  if (!isSignedIn) {
-    return (
-      <div className="rounded-lg border border-dashed p-12 text-center">
-        <p className="text-lg font-medium">Sign in required</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Please sign in to use the background removal tool.
-        </p>
-      </div>
-    );
-  }
 
   const handleSubmit = async () => {
     if (files.length === 0) return;
@@ -75,6 +63,7 @@ export function RemoveBgForm() {
   };
 
   return (
+    <SignInGate toolName="background removal">
     <div className="space-y-6">
       <ImageDropzone
         onFilesSelected={setFiles}
@@ -173,5 +162,6 @@ export function RemoveBgForm() {
         />
       )}
     </div>
+    </SignInGate>
   );
 }
