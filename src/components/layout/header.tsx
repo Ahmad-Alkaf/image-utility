@@ -11,6 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import {
   Sun,
   Moon,
   Menu,
@@ -22,8 +28,9 @@ import {
   Stamp,
   SlidersHorizontal,
   Info,
+  LayoutDashboard,
 } from "lucide-react";
-import { useState } from "react";
+
 
 const toolLinks = [
   { href: "/convert", label: "Convert", icon: ArrowRightLeft },
@@ -38,7 +45,6 @@ const toolLinks = [
 export function Header() {
   const { theme, setTheme } = useTheme();
   const { isSignedIn } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -49,27 +55,63 @@ export function Header() {
             <span className="font-heading text-xl font-bold">ImageForge</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
-                Tools
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                {toolLinks.map((tool) => (
-                  <DropdownMenuItem key={tool.href} render={<Link href={tool.href} />}>
-                    <tool.icon className="h-4 w-4" />
-                    {tool.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
+          {/* Large screens: all tools with icons + labels */}
+          <nav className="hidden xl:flex items-center gap-1">
+            {toolLinks.map((tool) => (
+              <Button
+                key={tool.href}
+                variant="ghost"
+                size="sm"
+                render={<Link href={tool.href} />}
+              >
+                <tool.icon className="h-4 w-4" />
+                {tool.label}
+              </Button>
+            ))}
             {isSignedIn && (
               <Button variant="ghost" size="sm" render={<Link href="/dashboard" />}>
                 Dashboard
               </Button>
             )}
           </nav>
+
+          {/* Medium screens: icons only with tooltips */}
+          <TooltipProvider>
+            <nav className="hidden md:flex xl:hidden items-center gap-0.5">
+              {toolLinks.map((tool) => (
+                <Tooltip key={tool.href}>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        render={<Link href={tool.href} />}
+                      />
+                    }
+                  >
+                    <tool.icon className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{tool.label}</TooltipContent>
+                </Tooltip>
+              ))}
+              {isSignedIn && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        render={<Link href="/dashboard" />}
+                      />
+                    }
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Dashboard</TooltipContent>
+                </Tooltip>
+              )}
+            </nav>
+          </TooltipProvider>
         </div>
 
         <div className="flex items-center gap-3">
@@ -92,43 +134,31 @@ export function Header() {
             <UserButton />
           )}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden h-9 w-9"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          {/* Small screens: dropdown menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" />
+              }
+            >
+              <Menu className="h-5 w-5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {toolLinks.map((tool) => (
+                <DropdownMenuItem key={tool.href} render={<Link href={tool.href} />}>
+                  <tool.icon className="h-4 w-4" />
+                  {tool.label}
+                </DropdownMenuItem>
+              ))}
+              {isSignedIn && (
+                <DropdownMenuItem render={<Link href="/dashboard" />}>
+                  Dashboard
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
-
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t bg-background px-4 pb-4 pt-2">
-          <nav className="flex flex-col gap-1">
-            {toolLinks.map((tool) => (
-              <Link
-                key={tool.href}
-                href={tool.href}
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <tool.icon className="h-4 w-4" />
-                {tool.label}
-              </Link>
-            ))}
-            {isSignedIn && (
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent border-t mt-2 pt-3"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
-            )}
-          </nav>
-        </div>
-      )}
     </header>
   );
 }
