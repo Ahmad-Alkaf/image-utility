@@ -1,194 +1,130 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ToolCard } from "@/components/shared/tool-card";
 import { TOOLS } from "@/lib/constants";
-import { db } from "@/lib/db";
-import {
-  Upload,
-  MousePointerClick,
-  Download,
-  Zap,
-  Shield,
-  Clock,
-} from "lucide-react";
+import { Shield, Clock, HardDrive, Zap, ArrowRight } from "lucide-react";
 
-async function getProcessedCount(): Promise<number> {
-  try {
-    return await db.processingJob.count({
-      where: { status: "COMPLETED" },
-    });
-  } catch {
-    return 0;
-  }
-}
+const FORMATS = ["PNG", "JPEG", "WebP", "AVIF", "TIFF", "GIF", "BMP", "ICO"];
 
-export default async function HomePage() {
-  const processedCount = await getProcessedCount();
-
+export default function HomePage() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b bg-gradient-to-b from-primary/5 via-background to-background">
-        <div className="container mx-auto px-4 py-20 md:py-32">
-          <div className="mx-auto max-w-3xl text-center space-y-6">
-            <Badge variant="secondary" className="px-4 py-1.5 text-sm">
-              Free &amp; Open Source
-            </Badge>
-            <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              Transform Your Images{" "}
-              <span className="text-primary">in Seconds</span>
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden border-b">
+        {/* dot grid */}
+        <div className="pointer-events-none absolute inset-0 [background-image:radial-gradient(circle_at_1px_1px,var(--border)_1px,transparent_0)] [background-size:24px_24px] opacity-40" />
+        {/* warm gradient wash */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/6 via-transparent to-accent/8" />
+
+        <div className="container relative mx-auto px-4 py-16 text-center md:py-24 lg:py-28">
+          <div className="mx-auto max-w-2xl space-y-6">
+            {/* chip */}
+            <div className="animate-fade-in inline-flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+              <Zap className="h-3 w-3 text-primary" />
+              No uploads to third parties — processed on our servers
+            </div>
+
+            <h1 className="animate-fade-in-up font-heading text-4xl font-extrabold tracking-tight [animation-delay:80ms] sm:text-5xl lg:text-6xl">
+              Your image{" "}
+              <span className="bg-gradient-to-r from-primary via-chart-1 to-chart-4 bg-clip-text text-transparent">
+                workshop.
+              </span>
             </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Convert, compress, resize, remove backgrounds, add watermarks, and
-              more. All from a single, powerful dashboard — no software to
-              install.
+
+            <p className="animate-fade-in-up mx-auto max-w-lg text-lg leading-relaxed text-muted-foreground [animation-delay:160ms]">
+              Convert, compress, resize, remove backgrounds, and more — all in
+              your browser. No installs, no sign-ups for basic tools.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Button size="lg" className="text-base px-8" render={<Link href="/convert" />}>
-                Get Started
+
+            <div className="animate-fade-in-up flex flex-wrap items-center justify-center gap-3 pt-1 [animation-delay:240ms]">
+              <Button size="lg" render={<Link href="/convert" />}>
+                Start converting
+                <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button size="lg" variant="outline" className="text-base px-8" render={<Link href="/sign-up" />}>
-                Create Free Account
+              <Button
+                size="lg"
+                variant="outline"
+                render={<Link href="/sign-up" />}
+              >
+                Create free account
               </Button>
+            </div>
+
+            {/* format pills */}
+            <div className="animate-fade-in-up flex flex-wrap justify-center gap-1.5 pt-1 [animation-delay:320ms]">
+              {FORMATS.map((fmt) => (
+                <span
+                  key={fmt}
+                  className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                >
+                  {fmt}
+                </span>
+              ))}
             </div>
           </div>
         </div>
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
       </section>
 
-      {/* Tool Grid */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="text-center space-y-3 mb-12">
-          <h2 className="font-heading text-3xl font-bold">
-            Powerful Image Tools
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Everything you need to edit and optimize your images, all in one
-            place.
+      {/* ── Tool Grid ── */}
+      <section className="container mx-auto px-4 py-12 md:py-16">
+        <div className="mb-8 space-y-1">
+          <h2 className="font-heading text-2xl font-bold">Tools</h2>
+          <p className="text-sm text-muted-foreground">
+            Pick a tool to get started. Some require a free account.
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {TOOLS.map((tool) => (
-            <ToolCard key={tool.id} tool={tool} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {TOOLS.map((tool, i) => (
+            <div
+              key={tool.id}
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${(i + 1) * 60}ms` }}
+            >
+              <ToolCard tool={tool} />
+            </div>
           ))}
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="border-y bg-muted/30">
-        <div className="container mx-auto px-4 py-16 md:py-24">
-          <div className="text-center space-y-3 mb-12">
-            <h2 className="font-heading text-3xl font-bold">How It Works</h2>
-            <p className="text-muted-foreground">
-              Three simple steps to transform your images.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {[
-              {
-                icon: Upload,
-                step: "1",
-                title: "Upload",
-                description:
-                  "Drag and drop your image or click to browse. Supports all major formats up to 50MB.",
-              },
-              {
-                icon: MousePointerClick,
-                step: "2",
-                title: "Choose Tool",
-                description:
-                  "Select from our suite of tools — convert, compress, resize, remove backgrounds, and more.",
-              },
-              {
-                icon: Download,
-                step: "3",
-                title: "Download",
-                description:
-                  "Preview the result and download your processed image instantly. It's that simple.",
-              },
-            ].map((item) => (
-              <div key={item.step} className="text-center space-y-4 relative">
-                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <item.icon className="h-7 w-7 text-primary" />
-                </div>
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
-                  {item.step}
-                </div>
-                <h3 className="font-semibold text-lg">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {item.description}
+      {/* ── Info Strip ── */}
+      <section className="border-t bg-muted/30">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 gap-6 text-sm sm:grid-cols-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Shield className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Private & secure</p>
+                <p className="text-muted-foreground">
+                  Files auto-deleted after 24 h
                 </p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats / Features Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          {[
-            {
-              icon: Zap,
-              title: "Lightning Fast",
-              value:
-                processedCount > 0
-                  ? `${processedCount.toLocaleString()}+ images processed`
-                  : "Instant processing",
-              description:
-                "Server-side processing with Sharp delivers results in milliseconds.",
-            },
-            {
-              icon: Shield,
-              title: "Privacy First",
-              value: "Files auto-deleted",
-              description:
-                "Your images are automatically deleted after 24 hours. We never share your data.",
-            },
-            {
-              icon: Clock,
-              title: "Always Free",
-              value: "No hidden costs",
-              description:
-                "Core tools are free forever. Sign in to unlock advanced features.",
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="text-center space-y-3 p-6 rounded-xl border bg-card"
-            >
-              <div className="mx-auto w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <item.icon className="h-6 w-6 text-primary" />
-              </div>
-              <p className="text-2xl font-bold text-primary">{item.value}</p>
-              <h3 className="font-semibold">{item.title}</h3>
-              <p className="text-sm text-muted-foreground">
-                {item.description}
-              </p>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* CTA */}
-      <section className="border-t bg-primary/5">
-        <div className="container mx-auto px-4 py-16 text-center space-y-6">
-          <h2 className="font-heading text-3xl font-bold">
-            Ready to Transform Your Images?
-          </h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            No sign-up required for basic tools. Create a free account for
-            advanced features.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" render={<Link href="/convert" />}>
-              Start Converting
-            </Button>
-            <Button size="lg" variant="outline" render={<Link href="/sign-up" />}>
-              Create Free Account
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">
+                  Instant processing
+                </p>
+                <p className="text-muted-foreground">Server-side with Sharp</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <HardDrive className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">
+                  Large files welcome
+                </p>
+                <p className="text-muted-foreground">Up to 50 MB per file</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
