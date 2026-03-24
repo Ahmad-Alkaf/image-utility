@@ -89,11 +89,11 @@ export function ImageDropzone({
               document.getElementById("file-input")?.click()
             }
           >
-            <div className="rounded-full bg-primary/10 p-4">
-              <Upload className="h-8 w-8 text-primary" />
+            <div className="rounded-lg border border-dashed border-foreground/15 p-3">
+              <Upload className="h-6 w-6 text-muted-foreground" />
             </div>
             <div className="text-center">
-              <p className="text-lg font-medium">
+              <p className="font-medium">
                 Drop your image{maxFiles > 1 ? "s" : ""} here
               </p>
               <p className="text-sm text-muted-foreground mt-1">
@@ -101,9 +101,8 @@ export function ImageDropzone({
               </p>
             </div>
             <p className="text-xs text-muted-foreground">
-              Supports PNG, JPEG, WebP, AVIF, TIFF, GIF, BMP
-              {maxFiles > 1 ? ` — up to ${maxFiles} files` : ""} — max 50MB
-              each
+              PNG, JPEG, WebP, AVIF, TIFF, GIF, BMP
+              {maxFiles > 1 ? ` · up to ${maxFiles} files` : ""} · max 50 MB
             </p>
             <input
               id="file-input"

@@ -18,7 +18,8 @@
       "Bash(find C:UsersahmadDesktopAHKMyProgramsJSimage-utilitysrc -name middleware* -o -name *guard* -o -name *protect*)",
       "Bash(npx tsc:*)",
       "Bash(find /c/Users/ahmad/Desktop/AHK/MyPrograms/JS/image-utility -type f -name *sign* -o -name *auth* -o -name *login*)",
-      "Bash(find /c/Users/ahmad/Desktop/AHK/MyPrograms/JS/image-utility/src -path */node_modules -prune -o -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\) -print)"
+      "Bash(find /c/Users/ahmad/Desktop/AHK/MyPrograms/JS/image-utility/src -path */node_modules -prune -o -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\) -print)",
+      "Bash(npm list:*)"
     ]
   }
 }

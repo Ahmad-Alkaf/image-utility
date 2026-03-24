@@ -51,8 +51,8 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
-            <ImageIcon className="h-6 w-6 text-primary" />
-            <span className="font-heading text-xl font-bold">ImageForge</span>
+            <ImageIcon className="h-5 w-5 text-primary" />
+            <span className="font-heading text-lg font-bold">ImageForge</span>
           </Link>
 
           {/* Large screens: all tools with icons + labels */}

@@ -32,8 +32,8 @@ export default async function DashboardPage() {
   return (
     <div className="p-6 space-y-8">
       <div>
-        <h1 className="text-3xl font-heading font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-heading font-bold">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           View your processing history and download results.
         </p>
       </div>
