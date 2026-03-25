@@ -20,7 +20,7 @@ export async function readMetadata(
 ): Promise<MetadataResult> {
   const metadata = await sharp(inputBuffer).metadata();
 
-  let exif: Record<string, unknown> = {};
+  const exif: Record<string, unknown> = {};
   let gps: { latitude: number; longitude: number } | undefined;
 
   if (metadata.exif) {

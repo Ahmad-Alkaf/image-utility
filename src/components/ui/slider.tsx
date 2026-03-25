@@ -24,7 +24,7 @@ function Slider({
             : typeof defaultValue === "number"
               ? [defaultValue]
               : [min],
-    [value, defaultValue, min, max]
+    [value, defaultValue, min]
   )
 
   return (

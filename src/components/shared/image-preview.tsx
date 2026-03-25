@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,6 +41,19 @@ export function ImagePreview({
   const [sliderPosition, setSliderPosition] = useState(50);
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleMouseDown = useCallback(() => {
     isDragging.current = true;
@@ -110,6 +123,7 @@ export function ImagePreview({
           <div className="space-y-2">
             <Badge variant="outline">Original</Badge>
             <div className="overflow-auto rounded-lg border bg-[url('/checkerboard.svg')] bg-repeat max-h-96">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={originalSrc}
                 alt="Original"
@@ -134,6 +148,7 @@ export function ImagePreview({
             <div className="space-y-2">
               <Badge>Processed</Badge>
               <div className="overflow-auto rounded-lg border bg-[url('/checkerboard.svg')] bg-repeat max-h-96">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={processedSrc}
                   alt="Processed"
@@ -165,6 +180,7 @@ export function ImagePreview({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={processedSrc}
               alt="Processed"
@@ -175,6 +191,7 @@ export function ImagePreview({
               className="absolute inset-0 overflow-hidden"
               style={{ width: `${sliderPosition}%` }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={originalSrc}
                 alt="Original"
@@ -182,8 +199,8 @@ export function ImagePreview({
                 style={{
                   transform: `scale(${zoom})`,
                   transformOrigin: "top left",
-                  width: sliderRef.current
-                    ? `${sliderRef.current.offsetWidth}px`
+                  width: containerWidth
+                    ? `${containerWidth}px`
                     : "100%",
                 }}
               />

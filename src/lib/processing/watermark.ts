@@ -21,7 +21,6 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
   if (options.type === "text" && options.text) {
     const fontSize = options.fontSize || 48;
     const fontColor = options.fontColor || "#ffffff";
-    const opacity = Math.round(options.opacity * 255);
 
     // Create SVG text overlay
     const escapedText = options.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -46,7 +45,6 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
     overlayBuffer = Buffer.from(svgText);
   } else if (options.type === "image" && options.watermarkImageBuffer) {
     // Resize watermark image and adjust opacity
-    const watermarkMeta = await sharp(options.watermarkImageBuffer).metadata();
     const maxWatermarkWidth = Math.round(imgWidth * 0.3);
     const maxWatermarkHeight = Math.round(imgHeight * 0.3);
 
@@ -77,7 +75,7 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
   } else {
     pipeline = pipeline.composite([{
       input: overlayBuffer,
-      gravity: gravity as any,
+      gravity: gravity as sharp.Gravity,
     }]);
   }
 

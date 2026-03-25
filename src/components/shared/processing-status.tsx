@@ -3,7 +3,7 @@
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 
 interface ProcessingStatusProps {
   status: "idle" | "uploading" | "processing" | "completed" | "failed";

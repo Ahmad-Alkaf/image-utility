@@ -11,7 +11,7 @@ export async function compressImage(inputBuffer: Buffer, options: CompressOption
   const inputFormat = metadata.format || "jpeg";
   const targetFormat = (options.format || inputFormat) as keyof sharp.FormatEnum;
 
-  let quality = options.quality;
+  const quality = options.quality;
 
   if (options.mode === "auto") {
     // Smart compression: find optimal quality that reduces size significantly
