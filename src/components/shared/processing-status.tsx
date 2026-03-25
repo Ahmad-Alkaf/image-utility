@@ -9,6 +9,7 @@ interface ProcessingStatusProps {
   status: "idle" | "uploading" | "processing" | "completed" | "failed";
   progress?: number;
   errorMessage?: string;
+  message?: string;
   onRetry?: () => void;
 }
 
@@ -16,6 +17,7 @@ export function ProcessingStatus({
   status,
   progress = 0,
   errorMessage,
+  message,
   onRetry,
 }: ProcessingStatusProps) {
   if (status === "idle") return null;
@@ -32,7 +34,7 @@ export function ProcessingStatus({
         {status === "processing" && (
           <>
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-sm font-medium">Processing your image...</span>
+            <span className="text-sm font-medium">{message || "Processing your image..."}</span>
           </>
         )}
         {status === "completed" && (

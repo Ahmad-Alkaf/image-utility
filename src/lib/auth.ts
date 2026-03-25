@@ -25,23 +25,29 @@ export async function getOrCreateUser(): Promise<User> {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  return syncUser(userId);
+}
+
+/** Resolve a Clerk userId to a DB user, creating the record if the webhook hasn't fired yet. */
+export async function syncUser(clerkId: string): Promise<User> {
+  const existing = await db.user.findUnique({ where: { clerkId } });
+  if (existing) return existing;
+
   const clerkUser = await currentUser();
   if (!clerkUser) throw new Error("Unauthorized");
 
-  const user = await db.user.upsert({
-    where: { clerkId: userId },
+  return db.user.upsert({
+    where: { clerkId },
     update: {
       email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
       name: `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() || null,
       imageUrl: clerkUser.imageUrl,
     },
     create: {
-      clerkId: userId,
+      clerkId,
       email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
       name: `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() || null,
       imageUrl: clerkUser.imageUrl,
     },
   });
-
-  return user;
 }

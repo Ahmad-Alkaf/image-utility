@@ -21,7 +21,10 @@
       "Bash(npx eslint:*)",
       "Bash(npx next lint:*)",
       "Bash(find:*)",
-      "Bash(npx dotenv:*)"
+      "Bash(npx dotenv:*)",
+      "WebSearch",
+      "WebFetch(domain:sharp.pixelplumbing.com)",
+      "Bash(npx next --version:*)"
     ]
   }
 }

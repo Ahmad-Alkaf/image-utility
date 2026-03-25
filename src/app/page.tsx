@@ -54,7 +54,7 @@ async function StatsSection() {
     return null;
   }
 
-  if (!areStatsWorthShowing(stats)) return null;
+  if (!areStatsWorthShowing(stats) && process.env.NODE_ENV !== 'development') return null;
 
   return (
     <section className="border-b bg-muted/20">

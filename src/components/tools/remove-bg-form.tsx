@@ -2,18 +2,25 @@
 
 import { useState } from "react";
 import { useImageUpload } from "@/hooks/use-image-upload";
-import { useProcessing } from "@/hooks/use-processing";
+import { useRemoveBg } from "@/hooks/use-remove-bg";
 import { SignInGate } from "@/components/shared/sign-in-gate";
 import { ImageDropzone } from "@/components/shared/image-dropzone";
 import { ImagePreview } from "@/components/shared/image-preview";
 import { ProcessingStatus } from "@/components/shared/processing-status";
-import { DownloadButton } from "@/components/shared/download-button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Download } from "lucide-react";
 import { UPLOAD_LIMITS } from "@/lib/constants";
+
+const REMOVE_BG_ACCEPTED_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+];
 
 type BackgroundType = "transparent" | "color" | "blur";
 
@@ -31,29 +38,33 @@ export function RemoveBgForm() {
     clearFiles,
   } = useImageUpload({ maxFiles: 1 });
   const {
-    processImage,
     status,
     progress,
+    progressLabel,
     result,
     error,
+    process,
     reset: resetProcessing,
-  } = useProcessing();
+  } = useRemoveBg();
 
   const handleSubmit = async () => {
     if (files.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("files", files[0]);
-    formData.append(
-      "options",
-      JSON.stringify({
-        background: backgroundType,
-        ...(backgroundType === "color" && { backgroundColor }),
-        ...(backgroundType === "blur" && { blurAmount }),
-      })
-    );
+    await process(files[0], {
+      background: backgroundType,
+      ...(backgroundType === "color" && { backgroundColor }),
+      ...(backgroundType === "blur" && { blurAmount }),
+    });
+  };
 
-    await processImage("/api/process/remove-bg", formData);
+  const handleDownload = () => {
+    if (!result) return;
+    const a = document.createElement("a");
+    a.href = result.url;
+    a.download = "removed-bg.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const handleReset = () => {
@@ -64,6 +75,14 @@ export function RemoveBgForm() {
     setBlurAmount(20);
   };
 
+  const isProcessing = status === "loading-model" || status === "processing";
+
+  // Map status to ProcessingStatus component's expected values
+  const displayStatus =
+    status === "loading-model" || status === "processing"
+      ? "processing"
+      : status;
+
   return (
     <SignInGate toolName="background removal">
     <div className="space-y-6">
@@ -71,6 +90,7 @@ export function RemoveBgForm() {
         onFilesSelected={setFiles}
         maxFiles={1}
         maxFileSize={UPLOAD_LIMITS.authenticated.maxFileSize}
+        accept={REMOVE_BG_ACCEPTED_TYPES}
         isSignedIn={true}
         selectedFiles={files}
         onRemoveFile={removeFile}
@@ -79,9 +99,7 @@ export function RemoveBgForm() {
       {files.length > 0 && (
         <ImagePreview
           originalSrc={previews[0]}
-          processedSrc={
-            result ? `${result.downloadUrl}?inline=true` : undefined
-          }
+          processedSrc={result?.url}
         />
       )}
 
@@ -148,22 +166,28 @@ export function RemoveBgForm() {
       <div className="flex gap-3">
         <Button
           onClick={handleSubmit}
-          disabled={files.length === 0 || status === "processing"}
+          disabled={files.length === 0 || isProcessing}
         >
-          {status === "processing" ? "Removing Background..." : "Remove Background"}
+          {isProcessing ? "Removing Background..." : "Remove Background"}
         </Button>
         <Button variant="outline" onClick={handleReset}>
           Reset
         </Button>
       </div>
 
-      <ProcessingStatus status={status} progress={progress} errorMessage={error ?? undefined} onRetry={handleSubmit} />
+      <ProcessingStatus
+        status={displayStatus}
+        progress={progress}
+        errorMessage={error ?? undefined}
+        onRetry={handleSubmit}
+        message={progressLabel || undefined}
+      />
 
       {result && (
-        <DownloadButton
-          downloadUrl={result.downloadUrl}
-          fileName="removed-bg.png"
-        />
+        <Button onClick={handleDownload}>
+          <Download className="h-4 w-4 mr-2" />
+          Download
+        </Button>
       )}
     </div>
     </SignInGate>

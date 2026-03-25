@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getFile } from "@/lib/storage";
 import { db } from "@/lib/db";
+import { syncUser } from "@/lib/auth";
 
 export async function GET(
   req: Request,
@@ -23,7 +24,7 @@ export async function GET(
     }
 
     if (job.userId) {
-      const dbUser = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null;
+      const dbUser = userId ? await syncUser(userId) : null;
       if (!dbUser || dbUser.id !== job.userId) {
         return NextResponse.json(
           { error: "Forbidden" },

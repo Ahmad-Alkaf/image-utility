@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
+import { getOrCreateUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
@@ -9,8 +9,12 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  let user;
+  try {
+    user = await getOrCreateUser();
+  } catch {
+    redirect("/sign-in");
+  }
 
   const jobs = await db.processingJob.findMany({
     where: { userId: user.id },

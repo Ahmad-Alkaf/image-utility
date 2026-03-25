@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { syncUser } from "@/lib/auth";
 import { generateStorageKey, storeFile } from "@/lib/storage";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resizeSchema } from "@/lib/validation";
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     const inputStorageKey = generateStorageKey(file.name, "input");
     await storeFile(inputStorageKey, inputBuffer, file.type);
 
-    const dbUser = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null;
+    const dbUser = userId ? await syncUser(userId) : null;
 
     const job = await db.processingJob.create({
       data: {
