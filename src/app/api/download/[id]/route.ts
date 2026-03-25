@@ -30,6 +30,15 @@ export async function GET(
           { status: 403 }
         );
       }
+    } else {
+      const url = new URL(req.url);
+      const token = url.searchParams.get("token");
+      if (!token || token !== job.downloadToken) {
+        return NextResponse.json(
+          { error: "Forbidden" },
+          { status: 403 }
+        );
+      }
     }
 
     // Check if file has expired (24 hours)

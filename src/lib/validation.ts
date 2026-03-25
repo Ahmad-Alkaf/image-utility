@@ -28,6 +28,12 @@ export const resizeSchema = z.object({
       height: z.number().min(1),
     })
     .optional(),
+}).refine((data) => {
+  if (data.mode === "exact") return data.width != null || data.height != null;
+  if (data.mode === "percentage") return data.percentage != null;
+  return true;
+}, {
+  message: "Exact mode requires at least one of width or height; percentage mode requires percentage",
 });
 
 export const compressSchema = z.object({

@@ -41,17 +41,15 @@ export function useProcessing(): UseProcessingReturn {
       setResult(null);
       setResults([]);
 
+      let progressInterval: ReturnType<typeof setInterval> | undefined;
       try {
         // Simulate upload progress
-        const progressInterval = setInterval(() => {
+        progressInterval = setInterval(() => {
           setProgress((prev) => {
             if (prev < 40) return prev + 5;
             return prev;
           });
         }, 200);
-
-        setStatus("processing");
-        setProgress(50);
 
         const response = await fetch(endpoint, {
           method: "POST",
@@ -59,6 +57,9 @@ export function useProcessing(): UseProcessingReturn {
         });
 
         clearInterval(progressInterval);
+
+        setStatus("processing");
+        setProgress(50);
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -80,6 +81,7 @@ export function useProcessing(): UseProcessingReturn {
         setProgress(100);
         return processingResult;
       } catch (err) {
+        clearInterval(progressInterval);
         const message = err instanceof Error ? err.message : "Processing failed";
         setError(message);
         setStatus("failed");

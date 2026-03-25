@@ -29,6 +29,9 @@ export async function resizeImage(inputBuffer: Buffer, options: ResizeOptions): 
     const newHeight = Math.round(metadata.height * scale);
     pipeline = pipeline.resize(newWidth, newHeight, { fit: "fill" });
   } else if (options.mode === "exact") {
+    if (!options.width && !options.height) {
+      throw new Error("At least one of width or height must be provided for exact resize");
+    }
     pipeline = pipeline.resize(options.width, options.height, {
       fit: options.lockAspectRatio ? "inside" : "fill",
       withoutEnlargement: false,

@@ -105,9 +105,10 @@ export function useImageUpload(
         );
       }
 
+      let progressInterval: ReturnType<typeof setInterval> | undefined;
       try {
         // Simulate progress since fetch doesn't support upload progress
-        const progressInterval = setInterval(() => {
+        progressInterval = setInterval(() => {
           setUploadProgress((prev) => Math.min(prev + 10, 90));
         }, 200);
 
@@ -122,6 +123,7 @@ export function useImageUpload(
 
         return response;
       } finally {
+        clearInterval(progressInterval);
         setUploading(false);
       }
     },

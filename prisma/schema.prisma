@@ -49,6 +49,7 @@ model ProcessingJob {
   outputMimeType   String?
   inputStorageKey  String
   outputStorageKey String?
+  downloadToken    String?          @default(uuid())
   options          Json?
   errorMessage     String?
   processingTimeMs Int?

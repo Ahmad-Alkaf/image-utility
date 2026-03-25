@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       jobId,
-      downloadUrl: `/api/download/${jobId}`,
+      downloadUrl: `/api/download/${jobId}?token=${job.downloadToken}`,
       outputMeta: {
         fileName: outputFileName,
         fileSize: outputBuffer.length,

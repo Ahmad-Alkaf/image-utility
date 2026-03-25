@@ -64,8 +64,33 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
 
   if (options.position === "tile") {
     // For tile mode, create a repeated pattern
-    const tileSize = options.type === "text" ? 200 : 150;
-    const tileBuffer = options.type === "text" ? overlayBuffer : await sharp(options.watermarkImageBuffer!).resize(tileSize, tileSize, { fit: "inside" }).ensureAlpha(options.opacity).toBuffer();
+    const tileSize = 200;
+    let tileBuffer: Buffer;
+    if (options.type === "text" && options.text) {
+      const fontSize = options.fontSize || 48;
+      const fontColor = options.fontColor || "#ffffff";
+      const escapedText = options.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const tileSvg = `<svg width="${tileSize}" height="${tileSize}">
+        <style>
+          .watermark {
+            fill: ${fontColor};
+            opacity: ${options.opacity};
+            font-size: ${fontSize}px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+          }
+        </style>
+        <text class="watermark"
+          x="${tileSize / 2}"
+          y="${tileSize / 2 + fontSize / 3}"
+          text-anchor="middle"
+          ${options.rotation ? `transform="rotate(${options.rotation}, ${tileSize / 2}, ${tileSize / 2})"` : ""}
+        >${escapedText}</text>
+      </svg>`;
+      tileBuffer = Buffer.from(tileSvg);
+    } else {
+      tileBuffer = await sharp(options.watermarkImageBuffer!).resize(tileSize, tileSize, { fit: "inside" }).ensureAlpha(options.opacity).toBuffer();
+    }
 
     pipeline = pipeline.composite([{
       input: tileBuffer,

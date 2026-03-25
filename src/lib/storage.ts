@@ -8,18 +8,28 @@ import {
 } from "@aws-sdk/client-s3";
 import crypto from "crypto";
 
-const STORAGE_TYPE = process.env.STORAGE_TYPE || "local";
-const UPLOAD_DIR = process.env.UPLOAD_DIR || "uploads";
+const hasS3Keys =
+  !!process.env.S3_ACCESS_KEY_ID && !!process.env.S3_SECRET_ACCESS_KEY;
+const STORAGE_TYPE = hasS3Keys ? "s3" : "local";
+const LOCAL_DIR = path.join(process.cwd(), ".storage");
 
+if (STORAGE_TYPE === "local") {
+  console.log("[storage] No S3 credentials found — using local storage at .storage/");
+}
+
+let _s3Client: S3Client | null = null;
 function getS3Client() {
-  return new S3Client({
-    region: process.env.S3_REGION || "auto",
-    endpoint: process.env.S3_ENDPOINT,
-    credentials: {
-      accessKeyId: process.env.S3_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
-    },
-  });
+  if (!_s3Client) {
+    _s3Client = new S3Client({
+      region: process.env.S3_REGION || "auto",
+      endpoint: process.env.S3_ENDPOINT,
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
+      },
+    });
+  }
+  return _s3Client;
 }
 
 export function generateStorageKey(
@@ -47,7 +57,7 @@ export async function storeFile(
       })
     );
   } else {
-    const filePath = path.join(process.cwd(), UPLOAD_DIR, key);
+    const filePath = path.join(LOCAL_DIR, key);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, buffer);
   }
@@ -66,7 +76,7 @@ export async function getFile(key: string): Promise<Buffer> {
     if (!stream) throw new Error("Empty response from S3");
     return Buffer.from(await stream.transformToByteArray());
   } else {
-    const filePath = path.join(process.cwd(), UPLOAD_DIR, key);
+    const filePath = path.join(LOCAL_DIR, key);
     return fs.readFile(filePath);
   }
 }
@@ -81,7 +91,7 @@ export async function deleteFile(key: string): Promise<void> {
       })
     );
   } else {
-    const filePath = path.join(process.cwd(), UPLOAD_DIR, key);
+    const filePath = path.join(LOCAL_DIR, key);
     await fs.unlink(filePath).catch(() => {});
   }
 }
