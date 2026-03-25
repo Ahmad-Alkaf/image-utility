@@ -5,7 +5,7 @@ import { TOOLS } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { Shield, Clock, HardDrive, Zap, ArrowRight, Images, Users, TrendingDown } from "lucide-react";
 
-const FORMATS = ["PNG", "JPEG", "WebP", "AVIF", "TIFF", "GIF", "BMP", "ICO"];
+const FORMATS = ["PNG", "JPEG", "WebP", "AVIF", "TIFF", "GIF", "SVG"];
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

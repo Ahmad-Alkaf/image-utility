@@ -26,8 +26,6 @@ export const MIME_TO_FORMAT: Record<string, ImageFormat> = {
   "image/avif": "avif",
   "image/tiff": "tiff",
   "image/gif": "gif",
-  "image/bmp": "bmp",
-  "image/x-icon": "ico",
 };
 
 export const ACCEPTED_IMAGE_TYPES = [
@@ -38,8 +36,6 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/avif",
   "image/tiff",
   "image/gif",
-  "image/bmp",
-  "image/x-icon",
   "image/svg+xml",
 ];
 

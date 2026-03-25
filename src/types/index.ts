@@ -62,9 +62,7 @@ export type ImageFormat =
   | "webp"
   | "avif"
   | "tiff"
-  | "gif"
-  | "bmp"
-  | "ico";
+  | "gif";
 
 export type CropPreset = "1:1" | "4:3" | "16:9" | "3:2" | "free";
 

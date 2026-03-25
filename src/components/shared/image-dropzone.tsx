@@ -135,7 +135,7 @@ export function ImageDropzone({
                   <div className="space-y-1 text-muted-foreground">
                     <p>Max file size: {maxSizeMB} MB per file</p>
                     <p>Max files: {effectiveMaxFiles}</p>
-                    <p>Formats: PNG, JPEG, WebP, AVIF, TIFF, GIF, BMP</p>
+                    <p>Formats: PNG, JPEG, WebP, AVIF, TIFF, GIF, SVG</p>
                   </div>
                   {!isSignedIn && (
                     <p className="text-primary pt-1">

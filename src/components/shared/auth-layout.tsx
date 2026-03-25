@@ -57,8 +57,8 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
                 that just work.
               </h1>
               <p className="max-w-[280px] text-[15px] leading-relaxed text-white/50">
-                Professional-grade image processing. No downloads, no signup
-                walls — just results.
+                Professional-grade image processing. No software to download,
+                no hidden fees — just results.
               </p>
             </div>
 
