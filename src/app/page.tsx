@@ -1,8 +1,9 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ToolCard } from "@/components/shared/tool-card";
 import { TOOLS } from "@/lib/constants";
-import { db } from "@/lib/db";
+import { getStats, areStatsWorthShowing } from "@/lib/stats";
 import { Shield, Clock, HardDrive, Zap, ArrowRight, Images, Users, TrendingDown } from "lucide-react";
 
 const FORMATS = ["PNG", "JPEG", "WebP", "AVIF", "TIFF", "GIF", "SVG"];
@@ -20,43 +21,91 @@ function formatCount(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
-async function getStats() {
-  try {
-    const [totals, userCount] = await Promise.all([
-      db.processingJob.aggregate({
-        where: { status: "COMPLETED" },
-        _count: true,
-        _sum: {
-          inputFileSize: true,
-          outputFileSize: true,
-        },
-      }),
-      db.user.count(),
-    ]);
-
-    return {
-      totalFilesProcessed: totals._count ?? 0,
-      totalDataProcessed: totals._sum.inputFileSize ?? 0,
-      totalSpaceSaved: Math.max(0, (totals._sum.inputFileSize ?? 0) - (totals._sum.outputFileSize ?? 0)),
-      totalUsers: userCount,
-    };
-  } catch {
-    return { totalFilesProcessed: 0, totalDataProcessed: 0, totalSpaceSaved: 0, totalUsers: 0 };
-  }
+function StatsCardSkeleton() {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
+      <div className="h-8 w-8 rounded-lg bg-muted animate-pulse" />
+      <div className="h-7 w-16 rounded bg-muted animate-pulse" />
+      <div className="h-4 w-20 rounded bg-muted animate-pulse" />
+    </div>
+  );
 }
 
-export default async function HomePage() {
-  const stats = await getStats();
-  const hasStats = stats.totalFilesProcessed > 0;
+function StatsFallback() {
+  return (
+    <section className="border-b bg-muted/20">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+        </div>
+      </div>
+    </section>
+  );
+}
 
+async function StatsSection() {
+  let stats;
+  try {
+    stats = await getStats();
+  } catch {
+    return null;
+  }
+
+  if (!areStatsWorthShowing(stats)) return null;
+
+  return (
+    <section className="border-b bg-muted/20">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Images className="h-4 w-4" />
+            </div>
+            <p className="text-2xl font-bold">{formatCount(stats.totalFilesProcessed)}</p>
+            <p className="text-xs text-muted-foreground">Images processed</p>
+          </div>
+
+          <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <HardDrive className="h-4 w-4" />
+            </div>
+            <p className="text-2xl font-bold">{formatBytes(stats.totalDataProcessedBytes)}</p>
+            <p className="text-xs text-muted-foreground">Data processed</p>
+          </div>
+
+          <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10 text-green-600">
+              <TrendingDown className="h-4 w-4" />
+            </div>
+            <p className="text-2xl font-bold">{formatBytes(stats.totalSpaceSavedBytes)}</p>
+            <p className="text-xs text-muted-foreground">Space saved</p>
+          </div>
+
+          <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Users className="h-4 w-4" />
+            </div>
+            <p className="text-2xl font-bold">{formatCount(stats.totalUsers)}</p>
+            <p className="text-xs text-muted-foreground">Users</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function HomePage() {
   return (
     <div className="flex flex-col">
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b">
         {/* dot grid */}
-        <div className="pointer-events-none absolute inset-0 [background-image:radial-gradient(circle_at_1px_1px,var(--border)_1px,transparent_0)] [background-size:24px_24px] opacity-40" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,var(--border)_1px,transparent_0)] bg-size-[24px_24px] opacity-40" />
         {/* warm gradient wash */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/6 via-transparent to-accent/8" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/6 via-transparent to-accent/8" />
 
         <div className="container relative mx-auto px-4 py-16 text-center md:py-24 lg:py-28">
           <div className="mx-auto max-w-2xl space-y-6">
@@ -68,7 +117,7 @@ export default async function HomePage() {
 
             <h1 className="animate-fade-in-up font-heading text-4xl font-extrabold tracking-tight [animation-delay:80ms] sm:text-5xl lg:text-6xl">
               Your image{" "}
-              <span className="bg-gradient-to-r from-primary via-chart-1 to-chart-4 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-primary via-chart-1 to-chart-4 bg-clip-text text-transparent">
                 workshop.
               </span>
             </h1>
@@ -108,46 +157,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Stats Section ── */}
-      {hasStats && (
-        <section className="border-b bg-muted/20">
-          <div className="container mx-auto px-4 py-8">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Images className="h-4 w-4" />
-                </div>
-                <p className="text-2xl font-bold">{formatCount(stats.totalFilesProcessed)}</p>
-                <p className="text-xs text-muted-foreground">Images processed</p>
-              </div>
-
-              <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <HardDrive className="h-4 w-4" />
-                </div>
-                <p className="text-2xl font-bold">{formatBytes(stats.totalDataProcessed)}</p>
-                <p className="text-xs text-muted-foreground">Data processed</p>
-              </div>
-
-              <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10 text-green-600">
-                  <TrendingDown className="h-4 w-4" />
-                </div>
-                <p className="text-2xl font-bold">{formatBytes(stats.totalSpaceSaved)}</p>
-                <p className="text-xs text-muted-foreground">Space saved</p>
-              </div>
-
-              <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Users className="h-4 w-4" />
-                </div>
-                <p className="text-2xl font-bold">{formatCount(stats.totalUsers)}</p>
-                <p className="text-xs text-muted-foreground">Users</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* ── Stats Section (streamed independently) ── */}
+      <Suspense fallback={<StatsFallback />}>
+        <StatsSection />
+      </Suspense>
 
       {/* ── Tool Grid ── */}
       <section className="container mx-auto px-4 py-12 md:py-16">
