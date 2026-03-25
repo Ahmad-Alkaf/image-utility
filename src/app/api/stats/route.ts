@@ -31,7 +31,8 @@ export async function GET() {
   } catch (error) {
     console.error("Stats error:", error);
     return NextResponse.json(
-      { totalFilesProcessed: 0, totalDataProcessedBytes: 0, totalSpaceSavedBytes: 0, totalUsers: 0 }
+      { error: "Failed to fetch stats" },
+      { status: 500 }
     );
   }
 }

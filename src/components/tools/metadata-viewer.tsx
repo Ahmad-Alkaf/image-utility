@@ -90,6 +90,7 @@ export function MetadataViewer() {
   const {
     processImage,
     status: stripStatus,
+    progress: stripProgress,
     result: stripResult,
     error: stripError,
     reset: resetStrip,
@@ -335,6 +336,7 @@ export function MetadataViewer() {
 
               <ProcessingStatus
                 status={stripStatus}
+                progress={stripProgress}
                 errorMessage={stripError ?? undefined}
               />
 

@@ -36,11 +36,12 @@ export function useImageUpload(
       const limited = newFiles.slice(0, maxFiles);
       setFilesState(limited);
       // Generate preview URLs
-      previews.forEach((url) => URL.revokeObjectURL(url));
-      const newPreviews = limited.map((f) => URL.createObjectURL(f));
-      setPreviews(newPreviews);
+      setPreviews((old) => {
+        old.forEach((url) => URL.revokeObjectURL(url));
+        return limited.map((f) => URL.createObjectURL(f));
+      });
     },
-    [maxFiles, previews]
+    [maxFiles]
   );
 
   const addFiles = useCallback(
@@ -76,11 +77,13 @@ export function useImageUpload(
   );
 
   const clearFiles = useCallback(() => {
-    previews.forEach((url) => URL.revokeObjectURL(url));
+    setPreviews((old) => {
+      old.forEach((url) => URL.revokeObjectURL(url));
+      return [];
+    });
     setFilesState([]);
-    setPreviews([]);
     setUploadProgress(0);
-  }, [previews]);
+  }, []);
 
   const uploadFiles = useCallback(
     async (

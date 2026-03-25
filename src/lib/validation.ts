@@ -32,7 +32,7 @@ export const resizeSchema = z.object({
 
 export const compressSchema = z.object({
   mode: z.enum(["auto", "manual"]).default("auto"),
-  quality: z.number().min(1).max(100).default(100),
+  quality: z.number().min(1).max(100).default(75),
   format: z.enum(SUPPORTED_FORMATS as [string, ...string[]]).optional(),
 });
 

@@ -41,7 +41,7 @@ export function CompressForm() {
   const limits = isSignedIn ? UPLOAD_LIMITS.authenticated : UPLOAD_LIMITS.anonymous;
 
   const [mode, setMode] = useState<"auto" | "manual">("auto");
-  const [quality, setQuality] = useState(100);
+  const [quality, setQuality] = useState(75);
   const [format, setFormat] = useState("original");
 
   const { files, addFiles, removeFile, clearFiles } = useImageUpload();
