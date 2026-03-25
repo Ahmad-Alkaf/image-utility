@@ -28,7 +28,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const maxFileSize = userId ? UPLOAD_LIMITS.authenticated.maxFileSize : UPLOAD_LIMITS.anonymous.maxFileSize;
+    const limits = userId ? UPLOAD_LIMITS.authenticated : UPLOAD_LIMITS.anonymous;
+    const maxFileSize = limits.maxFileSize;
+
+    if (files.length > limits.maxFiles) {
+      return NextResponse.json(
+        { error: `Too many files. Maximum ${limits.maxFiles} files allowed.` },
+        { status: 400 }
+      );
+    }
     const results = [];
 
     for (const file of files) {

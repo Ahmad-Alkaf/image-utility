@@ -55,9 +55,11 @@ export async function POST(request: NextRequest) {
     const inputStorageKey = generateStorageKey(file.name, "input");
     await storeFile(inputStorageKey, inputBuffer, file.type);
 
+    const dbUser = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null;
+
     const job = await db.processingJob.create({
       data: {
-        userId: userId || undefined,
+        userId: dbUser?.id,
         type: ProcessingType.METADATA_STRIP,
         status: ProcessingStatus.PENDING,
         inputFileName: file.name,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { getFile } from "@/lib/storage";
 import { db } from "@/lib/db";
 
@@ -8,6 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const { userId } = await auth();
 
     const job = await db.processingJob.findUnique({
       where: { id },
@@ -18,6 +20,16 @@ export async function GET(
         { error: "File not found" },
         { status: 404 }
       );
+    }
+
+    if (job.userId) {
+      const dbUser = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null;
+      if (!dbUser || dbUser.id !== job.userId) {
+        return NextResponse.json(
+          { error: "Forbidden" },
+          { status: 403 }
+        );
+      }
     }
 
     // Check if file has expired (24 hours)

@@ -21,6 +21,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const dbUser = await db.user.findUnique({ where: { clerkId: userId } });
+    if (!dbUser) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 401 }
+      );
+    }
+
     const rateLimitResult = checkRateLimit(userId, true);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
@@ -53,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     const job = await db.processingJob.create({
       data: {
-        userId,
+        userId: dbUser.id,
         type: ProcessingType.REMOVE_BG,
         status: ProcessingStatus.PENDING,
         inputFileName: file.name,

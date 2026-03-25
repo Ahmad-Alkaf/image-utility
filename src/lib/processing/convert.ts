@@ -11,9 +11,7 @@ export async function convertImage(
 
   let pipeline = sharp(inputBuffer);
 
-  if (stripMetadata) {
-    pipeline = pipeline.withMetadata({});
-  } else {
+  if (!stripMetadata) {
     pipeline = pipeline.withMetadata();
   }
 
@@ -45,10 +43,6 @@ export async function convertImage(
     }
     default:
       throw new Error(`Unsupported format: ${format}`);
-  }
-
-  if (stripMetadata) {
-    pipeline = pipeline.withMetadata({});
   }
 
   const outputBuffer = await pipeline.toBuffer();
