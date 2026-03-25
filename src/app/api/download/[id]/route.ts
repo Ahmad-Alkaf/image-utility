@@ -47,7 +47,8 @@ export async function GET(
 
     const url = new URL(req.url);
     const inline = url.searchParams.get("inline") === "true";
-    const disposition = inline ? "inline" : `attachment; filename="${fileName}"`;
+    const safeFileName = fileName.replace(/[^\w.\-]/g, '_');
+    const disposition = inline ? "inline" : `attachment; filename="${safeFileName}"`;
 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {

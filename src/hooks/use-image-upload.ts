@@ -48,10 +48,12 @@ export function useImageUpload(
     (newFiles: File[]) => {
       setFilesState((prev) => {
         const combined = [...prev, ...newFiles].slice(0, maxFiles);
-        const newPreviews = combined.map((f) => URL.createObjectURL(f));
-        setPreviews((old) => {
-          old.forEach((url) => URL.revokeObjectURL(url));
-          return newPreviews;
+        queueMicrotask(() => {
+          const newPreviews = combined.map((f) => URL.createObjectURL(f));
+          setPreviews((old) => {
+            old.forEach((url) => URL.revokeObjectURL(url));
+            return newPreviews;
+          });
         });
         return combined;
       });
@@ -68,8 +70,10 @@ export function useImageUpload(
       });
       setPreviews((prev) => {
         const next = [...prev];
-        URL.revokeObjectURL(next[index]);
-        next.splice(index, 1);
+        if (index >= 0 && index < prev.length) {
+          URL.revokeObjectURL(next[index]);
+          next.splice(index, 1);
+        }
         return next;
       });
     },

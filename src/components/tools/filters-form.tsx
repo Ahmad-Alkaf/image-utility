@@ -45,6 +45,7 @@ export function FiltersForm() {
   const {
     processImage,
     status,
+    progress,
     result,
     error,
     reset: resetProcessing,
@@ -265,7 +266,7 @@ export function FiltersForm() {
         </Button>
       </div>
 
-      <ProcessingStatus status={status} errorMessage={error ?? undefined} onRetry={handleSubmit} />
+      <ProcessingStatus status={status} progress={progress} errorMessage={error ?? undefined} onRetry={handleSubmit} />
 
       {result && (
         <DownloadButton

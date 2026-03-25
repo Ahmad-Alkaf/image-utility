@@ -50,6 +50,7 @@ export function WatermarkForm() {
   const {
     processImage,
     status,
+    progress,
     result,
     error,
     reset: resetProcessing,
@@ -285,6 +286,7 @@ export function WatermarkForm() {
 
       <ProcessingStatus
         status={status}
+        progress={progress}
         errorMessage={error ?? undefined}
         onRetry={handleSubmit}
       />

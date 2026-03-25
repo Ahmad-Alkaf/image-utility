@@ -40,7 +40,7 @@ export const watermarkSchema = z.object({
   type: z.enum(["text", "image"]),
   text: z.string().max(200).optional(),
   fontSize: z.number().min(8).max(200).optional(),
-  fontColor: z.string().optional(),
+  fontColor: z.string().regex(/^#[0-9a-fA-F]{3,8}$/).optional(),
   opacity: z.number().min(0).max(1).default(0.5),
   rotation: z.number().min(-360).max(360).default(0),
   position: z

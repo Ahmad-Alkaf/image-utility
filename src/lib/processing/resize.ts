@@ -21,9 +21,12 @@ export async function resizeImage(inputBuffer: Buffer, options: ResizeOptions): 
       height: Math.round(options.cropArea.height),
     });
   } else if (options.mode === "percentage" && options.percentage) {
+    if (!metadata.width || !metadata.height) {
+      throw new Error("Cannot determine image dimensions for percentage resize");
+    }
     const scale = options.percentage / 100;
-    const newWidth = Math.round((metadata.width || 0) * scale);
-    const newHeight = Math.round((metadata.height || 0) * scale);
+    const newWidth = Math.round(metadata.width * scale);
+    const newHeight = Math.round(metadata.height * scale);
     pipeline = pipeline.resize(newWidth, newHeight, { fit: "fill" });
   } else if (options.mode === "exact") {
     pipeline = pipeline.resize(options.width, options.height, {
