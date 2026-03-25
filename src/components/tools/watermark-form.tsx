@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ACCEPTED_IMAGE_TYPES } from "@/lib/constants";
+
+import { ACCEPTED_IMAGE_TYPES, UPLOAD_LIMITS } from "@/lib/constants";
 
 const POSITIONS = [
   { value: "top-left", label: "TL", row: 0, col: 0 },
@@ -107,6 +107,8 @@ export function WatermarkForm() {
       <ImageDropzone
         onFilesSelected={(selected) => setFiles(selected)}
         maxFiles={1}
+        maxFileSize={UPLOAD_LIMITS.authenticated.maxFileSize}
+        isSignedIn={true}
         selectedFiles={files}
         onRemoveFile={removeFile}
       />

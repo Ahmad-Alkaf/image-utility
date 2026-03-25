@@ -11,7 +11,8 @@ import { DownloadButton } from "@/components/shared/download-button";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+
+import { UPLOAD_LIMITS } from "@/lib/constants";
 
 type Preset = "grayscale" | "sepia" | "invert" | "vintage" | "cool" | "warm";
 
@@ -101,6 +102,8 @@ export function FiltersForm() {
       <ImageDropzone
         onFilesSelected={setFiles}
         maxFiles={1}
+        maxFileSize={UPLOAD_LIMITS.authenticated.maxFileSize}
+        isSignedIn={true}
         selectedFiles={files}
         onRemoveFile={removeFile}
       />
@@ -109,6 +112,7 @@ export function FiltersForm() {
         <div className="space-y-2">
           <Label>Preview</Label>
           <div className="overflow-hidden rounded-lg border bg-[url('/checkerboard.svg')] bg-repeat max-h-96 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previews[0]}
               alt="Preview with filters"
@@ -252,9 +256,9 @@ export function FiltersForm() {
       <div className="flex gap-3">
         <Button
           onClick={handleSubmit}
-          disabled={files.length === 0 || status === "processing"}
+          disabled={files.length === 0 || status === "processing" || status === "uploading"}
         >
-          {status === "processing" ? "Applying Filters..." : "Apply Filters"}
+          {status === "processing" || status === "uploading" ? "Applying Filters..." : "Apply Filters"}
         </Button>
         <Button variant="outline" onClick={handleReset}>
           Reset

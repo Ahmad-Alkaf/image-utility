@@ -2,11 +2,53 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ToolCard } from "@/components/shared/tool-card";
 import { TOOLS } from "@/lib/constants";
-import { Shield, Clock, HardDrive, Zap, ArrowRight } from "lucide-react";
+import { db } from "@/lib/db";
+import { Shield, Clock, HardDrive, Zap, ArrowRight, Images, Users, TrendingDown } from "lucide-react";
 
 const FORMATS = ["PNG", "JPEG", "WebP", "AVIF", "TIFF", "GIF", "BMP", "ICO"];
 
-export default function HomePage() {
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+function formatCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
+async function getStats() {
+  try {
+    const [totals, userCount] = await Promise.all([
+      db.processingJob.aggregate({
+        where: { status: "COMPLETED" },
+        _count: true,
+        _sum: {
+          inputFileSize: true,
+          outputFileSize: true,
+        },
+      }),
+      db.user.count(),
+    ]);
+
+    return {
+      totalFilesProcessed: totals._count ?? 0,
+      totalDataProcessed: totals._sum.inputFileSize ?? 0,
+      totalSpaceSaved: Math.max(0, (totals._sum.inputFileSize ?? 0) - (totals._sum.outputFileSize ?? 0)),
+      totalUsers: userCount,
+    };
+  } catch {
+    return { totalFilesProcessed: 0, totalDataProcessed: 0, totalSpaceSaved: 0, totalUsers: 0 };
+  }
+}
+
+export default async function HomePage() {
+  const stats = await getStats();
+  const hasStats = stats.totalFilesProcessed > 0;
+
   return (
     <div className="flex flex-col">
       {/* ── Hero ── */}
@@ -66,6 +108,47 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Stats Section ── */}
+      {hasStats && (
+        <section className="border-b bg-muted/20">
+          <div className="container mx-auto px-4 py-8">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Images className="h-4 w-4" />
+                </div>
+                <p className="text-2xl font-bold">{formatCount(stats.totalFilesProcessed)}</p>
+                <p className="text-xs text-muted-foreground">Images processed</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <HardDrive className="h-4 w-4" />
+                </div>
+                <p className="text-2xl font-bold">{formatBytes(stats.totalDataProcessed)}</p>
+                <p className="text-xs text-muted-foreground">Data processed</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10 text-green-600">
+                  <TrendingDown className="h-4 w-4" />
+                </div>
+                <p className="text-2xl font-bold">{formatBytes(stats.totalSpaceSaved)}</p>
+                <p className="text-xs text-muted-foreground">Space saved</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 rounded-xl border bg-card p-4 text-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Users className="h-4 w-4" />
+                </div>
+                <p className="text-2xl font-bold">{formatCount(stats.totalUsers)}</p>
+                <p className="text-xs text-muted-foreground">Users</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── Tool Grid ── */}
       <section className="container mx-auto px-4 py-12 md:py-16">
         <div className="mb-8 space-y-1">
@@ -123,7 +206,7 @@ export default function HomePage() {
                 <p className="font-medium text-foreground">
                   Large files welcome
                 </p>
-                <p className="text-muted-foreground">Up to 50 MB per file</p>
+                <p className="text-muted-foreground">Up to 50 MB per file for members</p>
               </div>
             </div>
           </div>

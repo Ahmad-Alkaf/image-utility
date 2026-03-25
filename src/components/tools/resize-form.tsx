@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { useProcessing } from "@/hooks/use-processing";
 import { ImageDropzone } from "@/components/shared/image-dropzone";
 import { ImagePreview } from "@/components/shared/image-preview";
 import { ProcessingStatus } from "@/components/shared/processing-status";
-import { DownloadButton } from "@/components/shared/download-button";
+import { DownloadButton, DownloadAllButton } from "@/components/shared/download-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { CROP_PRESETS } from "@/lib/constants";
+import { CROP_PRESETS, UPLOAD_LIMITS } from "@/lib/constants";
 import { Lock, Unlock, Crop, Maximize2 } from "lucide-react";
 
 type CropPreset = keyof typeof CROP_PRESETS;
@@ -25,6 +26,9 @@ interface CropArea {
 }
 
 export function ResizeForm() {
+  const { isSignedIn } = useUser();
+  const limits = isSignedIn ? UPLOAD_LIMITS.authenticated : UPLOAD_LIMITS.anonymous;
+
   const [activeTab, setActiveTab] = useState<"resize" | "crop">("resize");
 
   // Resize state
@@ -43,8 +47,8 @@ export function ResizeForm() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  const { files, previews, setFiles, removeFile, clearFiles } = useImageUpload({ maxFiles: 20 });
-  const { processImage, status, progress, result, error, reset: resetProcessing } = useProcessing();
+  const { files, previews, setFiles, removeFile, clearFiles } = useImageUpload({ maxFiles: limits.maxFiles });
+  const { processImage, processBatch, status, progress, result, results, error, reset: resetProcessing } = useProcessing();
 
   // Load image dimensions when file changes
   useEffect(() => {
@@ -237,46 +241,55 @@ export function ResizeForm() {
     setIsDragging(false);
   }, []);
 
+  const buildOptions = () => {
+    if (activeTab === "resize") {
+      if (resizeMode === "percentage") {
+        return JSON.stringify({
+          mode: "percentage",
+          percentage: percentage || 100,
+          lockAspectRatio,
+        });
+      } else {
+        return JSON.stringify({
+          mode: "exact",
+          width: width || undefined,
+          height: height || undefined,
+          lockAspectRatio,
+        });
+      }
+    } else {
+      return JSON.stringify({
+        mode: "crop",
+        lockAspectRatio: false,
+        cropPreset,
+        cropArea,
+      });
+    }
+  };
+
   const handleSubmit = async () => {
     if (files.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("files", files[0]);
+    const options = buildOptions();
 
-    if (activeTab === "resize") {
-      if (resizeMode === "percentage") {
-        formData.append(
-          "options",
-          JSON.stringify({
-            mode: "percentage",
-            percentage: percentage || 100,
-            lockAspectRatio,
-          })
-        );
-      } else {
-        formData.append(
-          "options",
-          JSON.stringify({
-            mode: "exact",
-            width: width || undefined,
-            height: height || undefined,
-            lockAspectRatio,
-          })
-        );
-      }
+    if (files.length === 1 || activeTab === "crop") {
+      // Crop mode only works on first file
+      const formData = new FormData();
+      formData.append("files", files[0]);
+      formData.append("options", options);
+      await processImage("/api/process/resize", formData);
     } else {
-      formData.append(
-        "options",
-        JSON.stringify({
-          mode: "crop",
-          lockAspectRatio: false,
-          cropPreset,
-          cropArea,
-        })
+      await processBatch(
+        "/api/process/resize",
+        (file) => {
+          const formData = new FormData();
+          formData.append("files", file);
+          formData.append("options", options);
+          return formData;
+        },
+        files
       );
     }
-
-    await processImage("/api/process/resize", formData);
   };
 
   const handleReset = () => {
@@ -295,7 +308,9 @@ export function ResizeForm() {
     <div className="space-y-6">
       <ImageDropzone
         onFilesSelected={setFiles}
-        maxFiles={20}
+        maxFiles={limits.maxFiles}
+        maxFileSize={limits.maxFileSize}
+        isSignedIn={!!isSignedIn}
         selectedFiles={files}
         onRemoveFile={removeFile}
       />
@@ -527,7 +542,7 @@ export function ResizeForm() {
           disabled={files.length === 0 || status === "processing" || status === "uploading"}
         >
           {status === "processing" || status === "uploading"
-            ? "Processing..."
+            ? `Processing${files.length > 1 ? ` (${results.length}/${files.length})` : ""}...`
             : activeTab === "resize"
               ? "Resize"
               : "Crop"}
@@ -539,7 +554,16 @@ export function ResizeForm() {
 
       <ProcessingStatus status={status} progress={progress} errorMessage={error ?? undefined} />
 
-      {result && (
+      {results.length > 1 && (
+        <DownloadAllButton
+          files={results.map((r, i) => ({
+            url: r.downloadUrl,
+            name: r.outputMeta.fileName || `resized-${i + 1}`,
+          }))}
+        />
+      )}
+
+      {results.length === 1 && result && (
         <DownloadButton
           downloadUrl={result.downloadUrl}
           fileName={`${activeTab === "resize" ? "resized" : "cropped"}-${files[0]?.name || "image"}`}

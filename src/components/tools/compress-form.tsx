@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { useProcessing } from "@/hooks/use-processing";
 import { ImageDropzone } from "@/components/shared/image-dropzone";
@@ -19,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { UPLOAD_LIMITS } from "@/lib/constants";
 
 const FORMAT_OPTIONS = [
   { value: "original", label: "Keep Original" },
@@ -35,6 +37,9 @@ function formatFileSize(bytes: number): string {
 }
 
 export function CompressForm() {
+  const { isSignedIn } = useUser();
+  const limits = isSignedIn ? UPLOAD_LIMITS.authenticated : UPLOAD_LIMITS.anonymous;
+
   const [mode, setMode] = useState<"auto" | "manual">("auto");
   const [quality, setQuality] = useState(100);
   const [format, setFormat] = useState("original");
@@ -71,7 +76,6 @@ export function CompressForm() {
     resetProcessing();
   };
 
-  const originalSize = files.length > 0 ? files[0].size : 0;
   const compressedSize = result?.outputMeta?.fileSize ?? 0;
   const originalSizeFromMeta =
     (result?.outputMeta as Record<string, unknown>)?.originalSize as
@@ -87,6 +91,8 @@ export function CompressForm() {
       <ImageDropzone
         onFilesSelected={addFiles}
         maxFiles={1}
+        maxFileSize={limits.maxFileSize}
+        isSignedIn={!!isSignedIn}
         selectedFiles={files}
         onRemoveFile={removeFile}
       />
@@ -157,9 +163,9 @@ export function CompressForm() {
       <div className="flex gap-3">
         <Button
           onClick={handleSubmit}
-          disabled={files.length === 0 || status === "processing"}
+          disabled={files.length === 0 || status === "processing" || status === "uploading"}
         >
-          {status === "processing" ? "Compressing..." : "Compress"}
+          {status === "processing" || status === "uploading" ? "Compressing..." : "Compress"}
         </Button>
         <Button variant="outline" onClick={handleReset}>
           Reset
@@ -190,13 +196,6 @@ export function CompressForm() {
             <span>&rarr;</span>
             <span>{formatFileSize(compressedSize)}</span>
           </div>
-          {Boolean((result.outputMeta as Record<string, unknown>)?.processingTimeMs) && (
-            <p className="text-xs text-muted-foreground">
-              Processed in{" "}
-              {String((result.outputMeta as Record<string, unknown>).processingTimeMs)}
-              ms
-            </p>
-          )}
         </div>
       )}
 

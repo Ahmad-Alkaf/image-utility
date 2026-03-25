@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { generateStorageKey, storeFile } from "@/lib/storage";
-import { MAX_FILE_SIZE, ACCEPTED_IMAGE_TYPES } from "@/lib/constants";
+import { UPLOAD_LIMITS, ACCEPTED_IMAGE_TYPES } from "@/lib/constants";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
@@ -28,6 +28,7 @@ export async function POST(req: Request) {
       );
     }
 
+    const maxFileSize = userId ? UPLOAD_LIMITS.authenticated.maxFileSize : UPLOAD_LIMITS.anonymous.maxFileSize;
     const results = [];
 
     for (const file of files) {
@@ -38,9 +39,9 @@ export async function POST(req: Request) {
         );
       }
 
-      if (file.size > MAX_FILE_SIZE) {
+      if (file.size > maxFileSize) {
         return NextResponse.json(
-          { error: `File ${file.name} exceeds 50MB limit` },
+          { error: `File ${file.name} exceeds ${maxFileSize / (1024 * 1024)}MB limit` },
           { status: 400 }
         );
       }

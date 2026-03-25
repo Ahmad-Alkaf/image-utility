@@ -5,7 +5,7 @@ import { generateStorageKey, storeFile } from "@/lib/storage";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { filtersSchema } from "@/lib/validation";
 import { applyFilters } from "@/lib/processing/filters";
-import { ACCEPTED_IMAGE_TYPES, MAX_FILE_SIZE } from "@/lib/constants";
+import { ACCEPTED_IMAGE_TYPES, UPLOAD_LIMITS } from "@/lib/constants";
 import { ProcessingType, ProcessingStatus } from "@/generated/prisma";
 
 export async function POST(request: NextRequest) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
       return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     }
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > UPLOAD_LIMITS.authenticated.maxFileSize) {
       return NextResponse.json({ error: "File exceeds 50MB limit" }, { status: 400 });
     }
     if (!optionsRaw) {

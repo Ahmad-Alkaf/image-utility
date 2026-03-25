@@ -7,8 +7,6 @@ export const SUPPORTED_FORMATS: ImageFormat[] = [
   "avif",
   "tiff",
   "gif",
-  "bmp",
-  "ico",
 ];
 
 export const FORMAT_MIME_TYPES: Record<ImageFormat, string> = {
@@ -18,8 +16,6 @@ export const FORMAT_MIME_TYPES: Record<ImageFormat, string> = {
   avif: "image/avif",
   tiff: "image/tiff",
   gif: "image/gif",
-  bmp: "image/bmp",
-  ico: "image/x-icon",
 };
 
 export const MIME_TO_FORMAT: Record<string, ImageFormat> = {

@@ -13,6 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { UPLOAD_LIMITS } from "@/lib/constants";
 
 type BackgroundType = "transparent" | "color" | "blur";
 
@@ -68,6 +69,8 @@ export function RemoveBgForm() {
       <ImageDropzone
         onFilesSelected={setFiles}
         maxFiles={1}
+        maxFileSize={UPLOAD_LIMITS.authenticated.maxFileSize}
+        isSignedIn={true}
         selectedFiles={files}
         onRemoveFile={removeFile}
       />

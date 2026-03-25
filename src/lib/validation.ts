@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from "@/lib/constants";
+import { SUPPORTED_FORMATS } from "@/lib/constants";
 
 export const convertSchema = z.object({
   format: z.enum(SUPPORTED_FORMATS as [string, ...string[]]),

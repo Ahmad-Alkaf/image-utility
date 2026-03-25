@@ -4,19 +4,26 @@ import { useCallback, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, X, FileImage } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Upload, X, FileImage, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ACCEPTED_IMAGE_TYPES, MAX_FILE_SIZE } from "@/lib/constants";
+import { ACCEPTED_IMAGE_TYPES, UPLOAD_LIMITS } from "@/lib/constants";
 
 interface ImageDropzoneProps {
   onFilesSelected: (files: File[]) => void;
   maxFiles?: number;
+  maxFileSize?: number;
   accept?: string[];
   disabled?: boolean;
   uploading?: boolean;
   uploadProgress?: number;
   selectedFiles?: File[];
   onRemoveFile?: (index: number) => void;
+  isSignedIn?: boolean;
 }
 
 function formatFileSize(bytes: number): string {
@@ -28,14 +35,21 @@ function formatFileSize(bytes: number): string {
 export function ImageDropzone({
   onFilesSelected,
   maxFiles = 1,
+  maxFileSize,
   accept = ACCEPTED_IMAGE_TYPES,
   disabled = false,
   uploading = false,
   uploadProgress = 0,
   selectedFiles = [],
   onRemoveFile,
+  isSignedIn = false,
 }: ImageDropzoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
+
+  const limits = isSignedIn ? UPLOAD_LIMITS.authenticated : UPLOAD_LIMITS.anonymous;
+  const effectiveMaxFileSize = maxFileSize ?? limits.maxFileSize;
+  const effectiveMaxFiles = Math.min(maxFiles, limits.maxFiles);
+  const maxSizeMB = Math.round(effectiveMaxFileSize / (1024 * 1024));
 
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -44,27 +58,27 @@ export function ImageDropzone({
       if (disabled || uploading) return;
 
       const files = Array.from(e.dataTransfer.files).filter(
-        (f) => accept.includes(f.type) && f.size <= MAX_FILE_SIZE
+        (f) => accept.includes(f.type) && f.size <= effectiveMaxFileSize
       );
       if (files.length > 0) {
-        onFilesSelected(files.slice(0, maxFiles));
+        onFilesSelected(files.slice(0, effectiveMaxFiles));
       }
     },
-    [accept, disabled, maxFiles, onFilesSelected, uploading]
+    [accept, disabled, effectiveMaxFiles, effectiveMaxFileSize, onFilesSelected, uploading]
   );
 
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (disabled || uploading || !e.target.files) return;
       const files = Array.from(e.target.files).filter(
-        (f) => accept.includes(f.type) && f.size <= MAX_FILE_SIZE
+        (f) => accept.includes(f.type) && f.size <= effectiveMaxFileSize
       );
       if (files.length > 0) {
-        onFilesSelected(files.slice(0, maxFiles));
+        onFilesSelected(files.slice(0, effectiveMaxFiles));
       }
       e.target.value = "";
     },
-    [accept, disabled, maxFiles, onFilesSelected, uploading]
+    [accept, disabled, effectiveMaxFiles, effectiveMaxFileSize, onFilesSelected, uploading]
   );
 
   return (
@@ -94,21 +108,48 @@ export function ImageDropzone({
             </div>
             <div className="text-center">
               <p className="font-medium">
-                Drop your image{maxFiles > 1 ? "s" : ""} here
+                Drop your image{effectiveMaxFiles > 1 ? "s" : ""} here
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 or click to browse
               </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              PNG, JPEG, WebP, AVIF, TIFF, GIF, BMP
-              {maxFiles > 1 ? ` · up to ${maxFiles} files` : ""} · max 50 MB
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs text-muted-foreground">
+                {effectiveMaxFiles > 1
+                  ? `Up to ${effectiveMaxFiles} files · max ${maxSizeMB} MB each`
+                  : `Max ${maxSizeMB} MB`}
+              </p>
+              <Popover>
+                <PopoverTrigger
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-56 text-xs space-y-2 p-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <p className="font-medium text-sm">Upload limits</p>
+                  <div className="space-y-1 text-muted-foreground">
+                    <p>Max file size: {maxSizeMB} MB per file</p>
+                    <p>Max files: {effectiveMaxFiles}</p>
+                    <p>Formats: PNG, JPEG, WebP, AVIF, TIFF, GIF, BMP</p>
+                  </div>
+                  {!isSignedIn && (
+                    <p className="text-primary pt-1">
+                      Sign in for {UPLOAD_LIMITS.authenticated.maxFileSize / (1024 * 1024)} MB per file and up to {UPLOAD_LIMITS.authenticated.maxFiles} files.
+                    </p>
+                  )}
+                </PopoverContent>
+              </Popover>
+            </div>
             <input
               id="file-input"
               type="file"
               accept={accept.join(",")}
-              multiple={maxFiles > 1}
+              multiple={effectiveMaxFiles > 1}
               onChange={handleFileInput}
               className="hidden"
             />
@@ -149,7 +190,7 @@ export function ImageDropzone({
               </div>
             )}
 
-            {!uploading && maxFiles > selectedFiles.length && (
+            {!uploading && effectiveMaxFiles > selectedFiles.length && (
               <Button
                 variant="outline"
                 size="sm"
@@ -166,7 +207,7 @@ export function ImageDropzone({
               id="file-input"
               type="file"
               accept={accept.join(",")}
-              multiple={maxFiles > 1}
+              multiple={effectiveMaxFiles > 1}
               onChange={handleFileInput}
               className="hidden"
             />

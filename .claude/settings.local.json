@@ -6,9 +6,6 @@
       "Bash(pg_isready -h localhost -p 5432)",
       "Bash(psql -h localhost -U postgres -p 5432 -l)",
       "Bash(\"/c/Program Files/PostgreSQL/17/bin/psql.exe\" -h localhost -U postgres -p 5432 -c \"SELECT 1\" 2>&1)",
-      "Bash(PGPASSWORD=32185279 \"/c/Program Files/PostgreSQL/17/bin/psql.exe\" -h localhost -U postgres -p 5432 -c \"SELECT 1\" 2>&1)",
-      "Bash(PGPASSWORD=32185279 \"/c/Program Files/PostgreSQL/17/bin/psql.exe\" -h localhost -U postgres -p 5432 -c \"SELECT datname FROM pg_database WHERE datname = 'imageforge'\" 2>&1)",
-      "Bash(PGPASSWORD=32185279 \"/c/Program Files/PostgreSQL/17/bin/psql.exe\" -h localhost -U postgres -p 5432 -d imageforge -c \"\\\\dt\" 2>&1)",
       "Bash(npx prisma db push:*)",
       "Bash(npx next build:*)",
       "Bash(npm install --no-save :*)",
@@ -19,7 +16,13 @@
       "Bash(npx tsc:*)",
       "Bash(find /c/Users/ahmad/Desktop/AHK/MyPrograms/JS/image-utility -type f -name *sign* -o -name *auth* -o -name *login*)",
       "Bash(find /c/Users/ahmad/Desktop/AHK/MyPrograms/JS/image-utility/src -path */node_modules -prune -o -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\) -print)",
-      "Bash(npm list:*)"
+      "Bash(npm list:*)",
+      "Bash(find C:/Users/ahmad/Desktop/AHK/MyPrograms/JS/image-utility -name next.config.* -o -name middleware.ts -o -name clerk*)",
+      "Bash(grep -r middleware C:/Users/ahmad/Desktop/AHK/MyPrograms/JS/image-utility/src --include=*.ts --include=*.tsx)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(npm run lint:*)"
     ]
   }
 }

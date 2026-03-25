@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { useProcessing } from "@/hooks/use-processing";
 import { ImageDropzone } from "@/components/shared/image-dropzone";
 import { ImagePreview } from "@/components/shared/image-preview";
 import { ProcessingStatus } from "@/components/shared/processing-status";
-import { DownloadButton } from "@/components/shared/download-button";
+import { DownloadButton, DownloadAllButton } from "@/components/shared/download-button";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { UPLOAD_LIMITS } from "@/lib/constants";
 
 const FORMAT_OPTIONS = [
   { value: "png", label: "PNG" },
@@ -29,6 +31,9 @@ const FORMAT_OPTIONS = [
 ];
 
 export function ConvertForm() {
+  const { isSignedIn } = useUser();
+  const limits = isSignedIn ? UPLOAD_LIMITS.authenticated : UPLOAD_LIMITS.anonymous;
+
   const [targetFormat, setTargetFormat] = useState("webp");
   const [quality, setQuality] = useState(100);
   const [stripMetadata, setStripMetadata] = useState(false);
@@ -39,25 +44,30 @@ export function ConvertForm() {
     setFiles,
     removeFile,
     clearFiles,
-  } = useImageUpload({ maxFiles: 20 });
-  const { processImage, status, result, error, reset: resetProcessing } =
+  } = useImageUpload({ maxFiles: limits.maxFiles });
+  const { processBatch, status, progress, result, results, error, reset: resetProcessing } =
     useProcessing();
 
   const handleSubmit = async () => {
     if (files.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("files", files[0]);
-    formData.append(
-      "options",
-      JSON.stringify({
-        format: targetFormat,
-        quality,
-        stripMetadata,
-      })
+    await processBatch(
+      "/api/process/convert",
+      (file) => {
+        const formData = new FormData();
+        formData.append("files", file);
+        formData.append(
+          "options",
+          JSON.stringify({
+            format: targetFormat,
+            quality,
+            stripMetadata,
+          })
+        );
+        return formData;
+      },
+      files
     );
-
-    await processImage("/api/process/convert", formData);
   };
 
   const handleReset = () => {
@@ -72,7 +82,9 @@ export function ConvertForm() {
     <div className="space-y-6">
       <ImageDropzone
         onFilesSelected={setFiles}
-        maxFiles={20}
+        maxFiles={limits.maxFiles}
+        maxFileSize={limits.maxFileSize}
+        isSignedIn={!!isSignedIn}
         selectedFiles={files}
         onRemoveFile={removeFile}
       />
@@ -139,9 +151,11 @@ export function ConvertForm() {
       <div className="flex gap-3">
         <Button
           onClick={handleSubmit}
-          disabled={files.length === 0 || status === "processing"}
+          disabled={files.length === 0 || status === "processing" || status === "uploading"}
         >
-          {status === "processing" ? "Converting..." : "Convert"}
+          {status === "processing" || status === "uploading"
+            ? `Converting${files.length > 1 ? ` (${results.length}/${files.length})` : ""}...`
+            : "Convert"}
         </Button>
         <Button variant="outline" onClick={handleReset}>
           Reset
@@ -150,11 +164,21 @@ export function ConvertForm() {
 
       <ProcessingStatus
         status={status}
+        progress={progress}
         errorMessage={error ?? undefined}
         onRetry={handleSubmit}
       />
 
-      {result && (
+      {results.length > 1 && (
+        <DownloadAllButton
+          files={results.map((r, i) => ({
+            url: r.downloadUrl,
+            name: r.outputMeta.fileName || `converted-${i + 1}.${targetFormat}`,
+          }))}
+        />
+      )}
+
+      {results.length === 1 && result && (
         <DownloadButton
           downloadUrl={result.downloadUrl}
           fileName={`converted.${targetFormat}`}

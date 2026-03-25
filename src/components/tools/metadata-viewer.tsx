@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { useProcessing } from "@/hooks/use-processing";
 import { ImageDropzone } from "@/components/shared/image-dropzone";
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Camera, MapPin, FileImage, ShieldOff, Loader2 } from "lucide-react";
+import { UPLOAD_LIMITS } from "@/lib/constants";
 
 interface MetadataResponse {
   format: string;
@@ -77,11 +79,14 @@ const EXIF_LABELS: Record<string, string> = {
 };
 
 export function MetadataViewer() {
+  const { isSignedIn } = useUser();
+  const limits = isSignedIn ? UPLOAD_LIMITS.authenticated : UPLOAD_LIMITS.anonymous;
+
   const [metadata, setMetadata] = useState<MetadataResponse | null>(null);
   const [readingMetadata, setReadingMetadata] = useState(false);
   const [readError, setReadError] = useState<string | null>(null);
 
-  const { files, previews, setFiles, removeFile, clearFiles } = useImageUpload();
+  const { files, setFiles, removeFile, clearFiles } = useImageUpload();
   const {
     processImage,
     status: stripStatus,
@@ -151,6 +156,8 @@ export function MetadataViewer() {
       <ImageDropzone
         onFilesSelected={handleFilesSelected}
         maxFiles={1}
+        maxFileSize={limits.maxFileSize}
+        isSignedIn={!!isSignedIn}
         selectedFiles={files}
         onRemoveFile={(index) => {
           removeFile(index);
