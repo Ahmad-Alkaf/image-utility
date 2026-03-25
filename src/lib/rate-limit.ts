@@ -8,7 +8,7 @@ interface RateLimitEntry {
 const store = new Map<string, RateLimitEntry>();
 
 // Clean up expired entries periodically
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store) {
     if (now > entry.resetAt) {
@@ -16,6 +16,7 @@ setInterval(() => {
     }
   }
 }, 60_000);
+cleanupTimer.unref();
 
 export interface RateLimitResult {
   allowed: boolean;

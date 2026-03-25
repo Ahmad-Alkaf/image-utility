@@ -21,12 +21,12 @@ export default async function DashboardPage() {
   const stats = {
     total: jobs.length,
     completed: jobs.filter((j) => j.status === "COMPLETED").length,
-    totalSaved: jobs.reduce((acc, j) => {
+    totalSaved: Math.max(0, jobs.reduce((acc, j) => {
       if (j.outputFileSize && j.inputFileSize) {
         return acc + (j.inputFileSize - j.outputFileSize);
       }
       return acc;
-    }, 0),
+    }, 0)),
   };
 
   return (

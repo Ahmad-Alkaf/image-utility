@@ -92,7 +92,7 @@ export function ConvertForm() {
       {files.length > 0 && previews[0] && (
         <ImagePreview
           originalSrc={previews[0]}
-          processedSrc={result ? result.downloadUrl : undefined}
+          processedSrc={result ? `${result.downloadUrl}?inline=true` : undefined}
           originalMeta={{
             fileName: files[0].name,
             size: files[0].size,

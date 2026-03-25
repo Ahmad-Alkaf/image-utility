@@ -45,10 +45,14 @@ export async function GET(
     const fileName = job.outputFileName || "processed-image";
     const mimeType = job.outputMimeType || "application/octet-stream";
 
+    const url = new URL(req.url);
+    const inline = url.searchParams.get("inline") === "true";
+    const disposition = inline ? "inline" : `attachment; filename="${fileName}"`;
+
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": mimeType,
-        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Disposition": disposition,
         "Content-Length": buffer.length.toString(),
       },
     });

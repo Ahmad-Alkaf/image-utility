@@ -44,7 +44,7 @@ export function CompressForm() {
   const [quality, setQuality] = useState(75);
   const [format, setFormat] = useState("original");
 
-  const { files, addFiles, removeFile, clearFiles } = useImageUpload();
+  const { files, previews, setFiles, removeFile, clearFiles } = useImageUpload();
   const {
     processImage,
     status,
@@ -89,7 +89,7 @@ export function CompressForm() {
   return (
     <div className="space-y-6">
       <ImageDropzone
-        onFilesSelected={addFiles}
+        onFilesSelected={setFiles}
         maxFiles={1}
         maxFileSize={limits.maxFileSize}
         isSignedIn={!!isSignedIn}
@@ -99,7 +99,7 @@ export function CompressForm() {
 
       {files.length > 0 && (
         <ImagePreview
-          originalSrc={URL.createObjectURL(files[0])}
+          originalSrc={previews[0]}
           originalMeta={{
             fileName: files[0].name,
             size: files[0].size,

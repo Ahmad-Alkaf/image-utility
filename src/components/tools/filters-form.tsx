@@ -126,7 +126,7 @@ export function FiltersForm() {
       {files.length > 0 && result && (
         <ImagePreview
           originalSrc={previews[0]}
-          processedSrc={result.downloadUrl}
+          processedSrc={`${result.downloadUrl}?inline=true`}
         />
       )}
 

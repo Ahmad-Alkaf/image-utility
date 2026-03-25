@@ -79,7 +79,7 @@ export function RemoveBgForm() {
         <ImagePreview
           originalSrc={previews[0]}
           processedSrc={
-            result ? result.downloadUrl : undefined
+            result ? `${result.downloadUrl}?inline=true` : undefined
           }
         />
       )}

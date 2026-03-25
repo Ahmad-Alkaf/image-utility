@@ -26,7 +26,7 @@ export function generateStorageKey(
   fileName: string,
   prefix: string = "input"
 ): string {
-  const ext = path.extname(fileName);
+  const ext = path.extname(fileName).replace(/[^a-zA-Z0-9.]/g, "");
   const id = crypto.randomUUID();
   return `${prefix}/${id}${ext}`;
 }
