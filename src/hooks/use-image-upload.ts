@@ -46,15 +46,16 @@ export function useImageUpload(
 
   const addFiles = useCallback(
     (newFiles: File[]) => {
+      const newFileUrls = newFiles.map((f) => URL.createObjectURL(f));
       setFilesState((prev) => {
         const combined = [...prev, ...newFiles].slice(0, maxFiles);
-        queueMicrotask(() => {
-          const newPreviews = combined.map((f) => URL.createObjectURL(f));
-          setPreviews((old) => {
-            old.forEach((url) => URL.revokeObjectURL(url));
-            return newPreviews;
-          });
-        });
+        return combined;
+      });
+      setPreviews((oldPreviews) => {
+        const combined = [...oldPreviews, ...newFileUrls].slice(0, maxFiles);
+        // Revoke any previews that got sliced off
+        const discarded = [...oldPreviews, ...newFileUrls].slice(maxFiles);
+        discarded.forEach((url) => URL.revokeObjectURL(url));
         return combined;
       });
     },

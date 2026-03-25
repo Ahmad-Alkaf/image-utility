@@ -50,7 +50,13 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
 
     overlayBuffer = await sharp(options.watermarkImageBuffer)
       .resize(maxWatermarkWidth, maxWatermarkHeight, { fit: "inside" })
-      .ensureAlpha(options.opacity)
+      .ensureAlpha()
+      .composite([{
+        input: Buffer.from([0, 0, 0, Math.round(options.opacity * 255)]),
+        raw: { width: 1, height: 1, channels: 4 },
+        tile: true,
+        blend: "dest-in",
+      }])
       .toBuffer();
   } else {
     // No watermark to apply
@@ -89,7 +95,16 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
       </svg>`;
       tileBuffer = Buffer.from(tileSvg);
     } else {
-      tileBuffer = await sharp(options.watermarkImageBuffer!).resize(tileSize, tileSize, { fit: "inside" }).ensureAlpha(options.opacity).toBuffer();
+      tileBuffer = await sharp(options.watermarkImageBuffer!)
+        .resize(tileSize, tileSize, { fit: "inside" })
+        .ensureAlpha()
+        .composite([{
+          input: Buffer.from([0, 0, 0, Math.round(options.opacity * 255)]),
+          raw: { width: 1, height: 1, channels: 4 },
+          tile: true,
+          blend: "dest-in",
+        }])
+        .toBuffer();
     }
 
     pipeline = pipeline.composite([{

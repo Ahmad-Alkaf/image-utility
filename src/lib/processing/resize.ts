@@ -13,12 +13,25 @@ export async function resizeImage(inputBuffer: Buffer, options: ResizeOptions): 
   const metadata = await sharp(inputBuffer).metadata();
   let pipeline = sharp(inputBuffer);
 
+  if (options.mode === "crop" && !options.cropArea) {
+    throw new Error("Crop mode requires a crop area");
+  }
+
   if (options.mode === "crop" && options.cropArea) {
+    const imgW = metadata.width || 0;
+    const imgH = metadata.height || 0;
+    const cropLeft = Math.round(options.cropArea.x);
+    const cropTop = Math.round(options.cropArea.y);
+    const cropWidth = Math.round(options.cropArea.width);
+    const cropHeight = Math.round(options.cropArea.height);
+    if (cropLeft + cropWidth > imgW || cropTop + cropHeight > imgH) {
+      throw new Error("Crop area exceeds image dimensions");
+    }
     pipeline = pipeline.extract({
-      left: Math.round(options.cropArea.x),
-      top: Math.round(options.cropArea.y),
-      width: Math.round(options.cropArea.width),
-      height: Math.round(options.cropArea.height),
+      left: cropLeft,
+      top: cropTop,
+      width: cropWidth,
+      height: cropHeight,
     });
   } else if (options.mode === "percentage" && options.percentage) {
     if (!metadata.width || !metadata.height) {
