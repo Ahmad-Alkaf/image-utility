@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { syncUser } from "@/lib/auth";
 import { generateStorageKey, storeFile } from "@/lib/storage";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { watermarkSchema } from "@/lib/validation";
 import { addWatermark } from "@/lib/processing/watermark";
 import { ACCEPTED_IMAGE_TYPES, UPLOAD_LIMITS } from "@/lib/constants";
 import { ProcessingType, ProcessingStatus } from "@/generated/prisma";
+import { ZodError } from "zod";
 
 export async function POST(request: NextRequest) {
   let jobId: string | undefined;
@@ -15,18 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json(
-        { error: "Sign in required for watermark tool" },
-        { status: 401 }
-      );
-    }
-
-    const dbUser = await db.user.findUnique({ where: { clerkId: userId } });
-    if (!dbUser) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const rateLimitResult = checkRateLimit(userId, true);
@@ -36,6 +27,8 @@ export async function POST(request: NextRequest) {
         { status: 429 }
       );
     }
+
+    const dbUser = await syncUser(userId);
 
     const formData = await request.formData();
     const file = formData.get("files") as File | null;
@@ -137,9 +130,9 @@ export async function POST(request: NextRequest) {
         },
       }).catch(console.error);
     }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Processing failed" },
-      { status: 500 }
-    );
+    if (error instanceof ZodError || error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid options" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 }
