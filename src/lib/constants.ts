@@ -47,9 +47,16 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/svg+xml",
 ];
 
-export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-export const MAX_BATCH_FILES = 20;
-export const FILE_EXPIRY_HOURS = 24;
+export const UPLOAD_LIMITS = {
+  anonymous: {
+    maxFileSize: 10 * 1024 * 1024, // 10 MB
+    maxFiles: 10,
+  },
+  authenticated: {
+    maxFileSize: 50 * 1024 * 1024, // 50 MB
+    maxFiles: 100,
+  },
+} as const;
 
 export const RATE_LIMITS = {
   anonymous: { maxRequests: 10, windowMs: 60 * 60 * 1000 }, // 10/hour
