@@ -12,9 +12,18 @@ const hasS3Keys =
   !!process.env.S3_ACCESS_KEY_ID && !!process.env.S3_SECRET_ACCESS_KEY;
 const STORAGE_TYPE = hasS3Keys ? "s3" : "local";
 const LOCAL_DIR = path.join(process.cwd(), ".storage");
+const RESOLVED_LOCAL_DIR = path.resolve(LOCAL_DIR);
 
 if (STORAGE_TYPE === "local") {
   console.log("[storage] No S3 credentials found — using local storage at .storage/");
+}
+
+function safePath(key: string): string {
+  const resolved = path.resolve(LOCAL_DIR, key);
+  if (!resolved.startsWith(RESOLVED_LOCAL_DIR + path.sep) && resolved !== RESOLVED_LOCAL_DIR) {
+    throw new Error("Invalid storage key");
+  }
+  return resolved;
 }
 
 let _s3Client: S3Client | null = null;
@@ -57,7 +66,7 @@ export async function storeFile(
       })
     );
   } else {
-    const filePath = path.join(LOCAL_DIR, key);
+    const filePath = safePath(key);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, buffer);
   }
@@ -76,7 +85,7 @@ export async function getFile(key: string): Promise<Buffer> {
     if (!stream) throw new Error("Empty response from S3");
     return Buffer.from(await stream.transformToByteArray());
   } else {
-    const filePath = path.join(LOCAL_DIR, key);
+    const filePath = safePath(key);
     return fs.readFile(filePath);
   }
 }
@@ -91,7 +100,7 @@ export async function deleteFile(key: string): Promise<void> {
       })
     );
   } else {
-    const filePath = path.join(LOCAL_DIR, key);
+    const filePath = safePath(key);
     await fs.unlink(filePath).catch(() => {});
   }
 }

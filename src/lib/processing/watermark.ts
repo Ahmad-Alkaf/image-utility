@@ -23,7 +23,7 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
     const fontColor = options.fontColor || "#ffffff";
 
     // Create SVG text overlay
-    const escapedText = options.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const escapedText = options.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     const svgText = `<svg width="${imgWidth}" height="${imgHeight}">
       <style>
         .watermark {
@@ -75,7 +75,7 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
     if (options.type === "text" && options.text) {
       const fontSize = options.fontSize || 48;
       const fontColor = options.fontColor || "#ffffff";
-      const escapedText = options.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const escapedText = options.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
       const tileSvg = `<svg width="${tileSize}" height="${tileSize}">
         <style>
           .watermark {

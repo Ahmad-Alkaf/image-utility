@@ -15,6 +15,11 @@ export async function applyFilters(inputBuffer: Buffer, options: FilterOptions):
   const metadata = await sharp(inputBuffer).metadata();
   let pipeline = sharp(inputBuffer);
 
+  // Compute base modulate values from slider adjustments
+  let baseBrightness = 1 + options.brightness / 100;
+  let baseSaturation = 1 + options.saturation / 100;
+  let baseHue = options.hue;
+
   // Apply preset first if specified
   if (options.preset) {
     switch (options.preset) {
@@ -28,7 +33,9 @@ export async function applyFilters(inputBuffer: Buffer, options: FilterOptions):
         pipeline = pipeline.negate();
         break;
       case "vintage":
-        pipeline = pipeline.modulate({ saturation: 0.7, brightness: 1.1 }).tint({ r: 120, g: 100, b: 80 });
+        baseBrightness *= 1.1;
+        baseSaturation *= 0.7;
+        pipeline = pipeline.tint({ r: 120, g: 100, b: 80 });
         break;
       case "cool":
         pipeline = pipeline.tint({ r: 80, g: 100, b: 140 });
@@ -39,12 +46,12 @@ export async function applyFilters(inputBuffer: Buffer, options: FilterOptions):
     }
   }
 
-  // Apply adjustments
-  if (options.brightness !== 0 || options.saturation !== 0 || options.hue !== 0) {
+  // Apply combined modulate (preset + slider adjustments merged into one call)
+  if (baseBrightness !== 1 || baseSaturation !== 1 || baseHue !== 0) {
     pipeline = pipeline.modulate({
-      brightness: 1 + options.brightness / 100,
-      saturation: 1 + options.saturation / 100,
-      hue: options.hue,
+      brightness: baseBrightness,
+      saturation: baseSaturation,
+      hue: baseHue,
     });
   }
 

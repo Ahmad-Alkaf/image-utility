@@ -56,26 +56,29 @@ export function DownloadAllButton({
     const JSZip = (await import("jszip")).default;
     const zip = new JSZip();
 
-    const nameCounts = new Map<string, number>();
-    await Promise.all(
+    const fetched = await Promise.all(
       files.map(async (file) => {
         const response = await fetch(file.url);
-        if (!response.ok) return; // skip failed downloads
+        if (!response.ok) return null;
         const blob = await response.blob();
-
-        let zipName = file.name;
-        const count = nameCounts.get(zipName) || 0;
-        if (count > 0) {
-          const dotIdx = zipName.lastIndexOf(".");
-          const base = dotIdx > 0 ? zipName.slice(0, dotIdx) : zipName;
-          const ext = dotIdx > 0 ? zipName.slice(dotIdx) : "";
-          zipName = `${base} (${count})${ext}`;
-        }
-        nameCounts.set(file.name, count + 1);
-
-        zip.file(zipName, blob);
+        return { name: file.name, blob };
       })
     );
+
+    const nameCounts = new Map<string, number>();
+    for (const entry of fetched) {
+      if (!entry) continue;
+      let zipName = entry.name;
+      const count = nameCounts.get(zipName) || 0;
+      if (count > 0) {
+        const dotIdx = zipName.lastIndexOf(".");
+        const base = dotIdx > 0 ? zipName.slice(0, dotIdx) : zipName;
+        const ext = dotIdx > 0 ? zipName.slice(dotIdx) : "";
+        zipName = `${base} (${count})${ext}`;
+      }
+      nameCounts.set(entry.name, count + 1);
+      zip.file(zipName, entry.blob);
+    }
 
     if (Object.keys(zip.files).length === 0) {
       alert("Download failed. Files may have expired.");
