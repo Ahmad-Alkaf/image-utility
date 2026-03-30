@@ -15,6 +15,7 @@ import { UPLOAD_LIMITS } from "@/lib/constants";
 
 interface ImageDropzoneProps {
   onFilesSelected: (files: File[]) => void;
+  onFilesAdded?: (files: File[]) => void;
   maxFiles?: number;
   maxFileSize?: number;
   accept: string[];
@@ -34,6 +35,7 @@ function formatFileSize(bytes: number): string {
 
 export function ImageDropzone({
   onFilesSelected,
+  onFilesAdded,
   maxFiles = 1,
   maxFileSize,
   accept,
@@ -75,11 +77,15 @@ export function ImageDropzone({
         (f) => accept.includes(f.type) && f.size <= effectiveMaxFileSize
       );
       if (files.length > 0) {
-        onFilesSelected(files.slice(0, effectiveMaxFiles));
+        if (selectedFiles.length > 0 && onFilesAdded) {
+          onFilesAdded(files.slice(0, effectiveMaxFiles - selectedFiles.length));
+        } else {
+          onFilesSelected(files.slice(0, effectiveMaxFiles));
+        }
       }
       e.target.value = "";
     },
-    [accept, disabled, effectiveMaxFiles, effectiveMaxFileSize, onFilesSelected, uploading]
+    [accept, disabled, effectiveMaxFiles, effectiveMaxFileSize, onFilesSelected, onFilesAdded, selectedFiles.length, uploading]
   );
 
   return (

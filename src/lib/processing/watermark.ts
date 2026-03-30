@@ -112,7 +112,14 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
       tile: true,
       gravity: "northwest",
     }]);
+  } else if (options.type === "text") {
+    // Text SVG overlay is already full-size with positioned text — use northwest for 1:1 alignment
+    pipeline = pipeline.composite([{
+      input: overlayBuffer,
+      gravity: "northwest" as sharp.Gravity,
+    }]);
   } else {
+    // Image watermark is smaller — use gravity for positioning
     pipeline = pipeline.composite([{
       input: overlayBuffer,
       gravity: gravity as sharp.Gravity,

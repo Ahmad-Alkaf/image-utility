@@ -42,6 +42,7 @@ export function ConvertForm() {
     files,
     previews,
     setFiles,
+    addFiles,
     removeFile,
     clearFiles,
   } = useImageUpload({ maxFiles: limits.maxFiles });
@@ -82,6 +83,7 @@ export function ConvertForm() {
     <div className="space-y-6">
       <ImageDropzone
         onFilesSelected={setFiles}
+        onFilesAdded={addFiles}
         maxFiles={limits.maxFiles}
         maxFileSize={limits.maxFileSize}
         accept={[...TOOL_ACCEPTED_TYPES.convert]}

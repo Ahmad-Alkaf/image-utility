@@ -46,92 +46,96 @@ export function ResizeForm() {
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [cropImage, setCropImage] = useState<HTMLImageElement | null>(null);
 
-  const { files, previews, setFiles, removeFile, clearFiles } = useImageUpload({ maxFiles: limits.maxFiles });
+  const { files, previews, setFiles, addFiles, removeFile, clearFiles } = useImageUpload({ maxFiles: limits.maxFiles });
   const { processImage, processBatch, status, progress, result, results, error, reset: resetProcessing } = useProcessing();
 
-  // Load image dimensions when file changes
+  // Load image dimensions and cache image element when file changes
   useEffect(() => {
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      setCropImage(null);
+      return;
+    }
 
+    const url = URL.createObjectURL(files[0]);
     const img = new Image();
     img.onload = () => {
       setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
       setOriginalAspectRatio(img.naturalWidth / img.naturalHeight);
       setCropArea({ x: 0, y: 0, width: img.naturalWidth, height: img.naturalHeight });
+      setCropImage(img);
     };
-    img.src = URL.createObjectURL(files[0]);
+    img.src = url;
 
-    return () => URL.revokeObjectURL(img.src);
+    return () => {
+      URL.revokeObjectURL(url);
+      setCropImage(null);
+    };
   }, [files]);
 
-  // Draw crop overlay on canvas
+  // Draw crop overlay on canvas using cached image
   useEffect(() => {
-    if (activeTab !== "crop" || !canvasRef.current || files.length === 0) return;
+    if (activeTab !== "crop" || !canvasRef.current || !cropImage) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
-      const drawWidth = img.naturalWidth * scale;
-      const drawHeight = img.naturalHeight * scale;
-      const offsetX = (canvas.width - drawWidth) / 2;
-      const offsetY = (canvas.height - drawHeight) / 2;
+    const img = cropImage;
+    const scale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+    const drawWidth = img.naturalWidth * scale;
+    const drawHeight = img.naturalHeight * scale;
+    const offsetX = (canvas.width - drawWidth) / 2;
+    const offsetY = (canvas.height - drawHeight) / 2;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw image
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+    // Draw image
+    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-      // Draw dark overlay outside crop area
-      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Draw dark overlay outside crop area
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Clear crop area to show image
-      const cropX = offsetX + (cropArea.x / img.naturalWidth) * drawWidth;
-      const cropY = offsetY + (cropArea.y / img.naturalHeight) * drawHeight;
-      const cropW = (cropArea.width / img.naturalWidth) * drawWidth;
-      const cropH = (cropArea.height / img.naturalHeight) * drawHeight;
+    // Clear crop area to show image
+    const cropX = offsetX + (cropArea.x / img.naturalWidth) * drawWidth;
+    const cropY = offsetY + (cropArea.y / img.naturalHeight) * drawHeight;
+    const cropW = (cropArea.width / img.naturalWidth) * drawWidth;
+    const cropH = (cropArea.height / img.naturalHeight) * drawHeight;
 
-      ctx.clearRect(cropX, cropY, cropW, cropH);
-      ctx.drawImage(
-        img,
-        cropArea.x,
-        cropArea.y,
-        cropArea.width,
-        cropArea.height,
-        cropX,
-        cropY,
-        cropW,
-        cropH
-      );
+    ctx.clearRect(cropX, cropY, cropW, cropH);
+    ctx.drawImage(
+      img,
+      cropArea.x,
+      cropArea.y,
+      cropArea.width,
+      cropArea.height,
+      cropX,
+      cropY,
+      cropW,
+      cropH
+    );
 
-      // Draw crop border
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(cropX, cropY, cropW, cropH);
+    // Draw crop border
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cropX, cropY, cropW, cropH);
 
-      // Draw grid lines (rule of thirds)
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.lineWidth = 1;
-      for (let i = 1; i <= 2; i++) {
-        ctx.beginPath();
-        ctx.moveTo(cropX + (cropW * i) / 3, cropY);
-        ctx.lineTo(cropX + (cropW * i) / 3, cropY + cropH);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cropX, cropY + (cropH * i) / 3);
-        ctx.lineTo(cropX + cropW, cropY + (cropH * i) / 3);
-        ctx.stroke();
-      }
-    };
-    img.src = URL.createObjectURL(files[0]);
-
-    return () => URL.revokeObjectURL(img.src);
-  }, [activeTab, files, cropArea]);
+    // Draw grid lines (rule of thirds)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(cropX + (cropW * i) / 3, cropY);
+      ctx.lineTo(cropX + (cropW * i) / 3, cropY + cropH);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cropX, cropY + (cropH * i) / 3);
+      ctx.lineTo(cropX + cropW, cropY + (cropH * i) / 3);
+      ctx.stroke();
+    }
+  }, [activeTab, cropImage, cropArea]);
 
   const handleWidthChange = (value: string) => {
     const numValue = value === "" ? "" : parseInt(value, 10);
@@ -308,6 +312,7 @@ export function ResizeForm() {
     <div className="space-y-6">
       <ImageDropzone
         onFilesSelected={setFiles}
+        onFilesAdded={addFiles}
         maxFiles={limits.maxFiles}
         maxFileSize={limits.maxFileSize}
         accept={[...TOOL_ACCEPTED_TYPES.resize]}

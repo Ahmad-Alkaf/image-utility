@@ -82,6 +82,7 @@ export async function stripMetadata(
   const format = metadata.format || "png";
 
   const output = await sharp(inputBuffer)
+    .rotate() // auto-orient then discard all EXIF/metadata
     .toFormat(format as keyof sharp.FormatEnum)
     .toBuffer();
 

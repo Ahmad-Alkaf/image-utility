@@ -113,8 +113,8 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v ?? "all")}>
-          <SelectTrigger className="w-[160px]">
+        <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v ?? "all"); setPage(0); }}>
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="All tools" />
           </SelectTrigger>
           <SelectContent>
@@ -127,8 +127,8 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
           </SelectContent>
         </Select>
 
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
-          <SelectTrigger className="w-[160px]">
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v ?? "all"); setPage(0); }}>
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -171,7 +171,7 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
 
                 return (
                   <TableRow key={job.id}>
-                    <TableCell className="max-w-[200px] truncate font-medium">
+                    <TableCell className="max-w-50 truncate font-medium">
                       {job.inputFileName}
                     </TableCell>
                     <TableCell>

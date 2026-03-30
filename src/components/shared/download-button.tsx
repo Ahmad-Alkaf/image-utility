@@ -18,6 +18,10 @@ export function DownloadButton({
 }: DownloadButtonProps) {
   const handleDownload = async () => {
     const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      alert("Download failed. The file may have expired.");
+      return;
+    }
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -55,10 +59,16 @@ export function DownloadAllButton({
     await Promise.all(
       files.map(async (file) => {
         const response = await fetch(file.url);
+        if (!response.ok) return; // skip failed downloads
         const blob = await response.blob();
         zip.file(file.name, blob);
       })
     );
+
+    if (Object.keys(zip.files).length === 0) {
+      alert("Download failed. Files may have expired.");
+      return;
+    }
 
     const zipBlob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(zipBlob);
