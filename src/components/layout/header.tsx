@@ -49,70 +49,67 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <Logo className="h-5 w-5 text-primary" />
-            <span className="font-heading text-lg font-bold">ImageForge</span>
-          </Link>
+        {/* Left: logo */}
+        <Link href="/" className="flex shrink-0 items-center">
+          <Logo />
+        </Link>
 
-          {/* Large screens: all tools with icons + labels */}
-          <nav className="hidden xl:flex items-center gap-1">
+        {/* Center: nav links (large screens with labels, medium screens icons only) */}
+        <nav className="hidden xl:flex items-center gap-1">
+          {toolLinks.map((tool) => (
+            <Button
+              key={tool.href}
+              variant="ghost"
+              size="sm"
+              render={<Link href={tool.href} />}
+            >
+              <tool.icon className="h-4 w-4" />
+              {tool.label}
+            </Button>
+          ))}
+          {isSignedIn && (
+            <Button variant="ghost" size="sm" render={<Link href="/dashboard" />}>
+              Dashboard
+            </Button>
+          )}
+        </nav>
+
+        <TooltipProvider>
+          <nav className="hidden md:flex xl:hidden items-center gap-0.5">
             {toolLinks.map((tool) => (
-              <Button
-                key={tool.href}
-                variant="ghost"
-                size="sm"
-                render={<Link href={tool.href} />}
-              >
-                <tool.icon className="h-4 w-4" />
-                {tool.label}
-              </Button>
+              <Tooltip key={tool.href}>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      render={<Link href={tool.href} />}
+                    />
+                  }
+                >
+                  <tool.icon className="h-4 w-4" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{tool.label}</TooltipContent>
+              </Tooltip>
             ))}
             {isSignedIn && (
-              <Button variant="ghost" size="sm" render={<Link href="/dashboard" />}>
-                Dashboard
-              </Button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      render={<Link href="/dashboard" />}
+                    />
+                  }
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Dashboard</TooltipContent>
+              </Tooltip>
             )}
           </nav>
-
-          {/* Medium screens: icons only with tooltips */}
-          <TooltipProvider>
-            <nav className="hidden md:flex xl:hidden items-center gap-0.5">
-              {toolLinks.map((tool) => (
-                <Tooltip key={tool.href}>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        render={<Link href={tool.href} />}
-                      />
-                    }
-                  >
-                    <tool.icon className="h-4 w-4" />
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">{tool.label}</TooltipContent>
-                </Tooltip>
-              ))}
-              {isSignedIn && (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        render={<Link href="/dashboard" />}
-                      />
-                    }
-                  >
-                    <LayoutDashboard className="h-4 w-4" />
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Dashboard</TooltipContent>
-                </Tooltip>
-              )}
-            </nav>
-          </TooltipProvider>
-        </div>
+        </TooltipProvider>
 
         <div className="flex items-center gap-3">
           <Button

@@ -17,11 +17,11 @@ const features = [
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[100] flex bg-background">
+    <div className="fixed inset-0 z-100 flex bg-background">
       {/* Left branding panel — warm gradient with depth */}
-      <div className="relative hidden w-[480px] shrink-0 overflow-hidden lg:block xl:w-[540px]">
+      <div className="relative hidden w-120 shrink-0 overflow-hidden lg:block xl:w-135">
         {/* Base gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[oklch(0.30_0.06_35)] via-[oklch(0.24_0.05_30)] to-[oklch(0.18_0.04_25)]" />
+        <div className="absolute inset-0 bg-linear-to-br from-[oklch(0.30_0.06_35)] via-[oklch(0.24_0.05_30)] to-[oklch(0.18_0.04_25)]" />
 
         {/* Dot grid overlay */}
         <div
@@ -41,12 +41,9 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
         <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
           <Link
             href="/"
-            className="inline-flex items-center gap-2.5 text-white/90 transition-opacity hover:opacity-80"
+            className="text-white/90 transition-opacity hover:opacity-80"
           >
-            <Logo className="h-5 w-5" />
-            <span className="font-heading text-lg font-bold tracking-tight">
-              ImageForge
-            </span>
+            <Logo size="lg" mono />
           </Link>
 
           <div className="space-y-10">
@@ -56,7 +53,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
                 <br />
                 that just work.
               </h1>
-              <p className="max-w-[280px] text-[15px] leading-relaxed text-white/50">
+              <p className="max-w-70 text-[15px] leading-relaxed text-white/50">
                 Professional-grade image processing. No software to download,
                 no hidden fees — just results.
               </p>
@@ -65,7 +62,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
             <div className="space-y-3.5">
               {features.map((f) => (
                 <div key={f.label} className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.07] ring-1 ring-white/[0.08]">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.07] ring-1 ring-white/8">
                     <f.icon className="h-4 w-4 text-white/60" />
                   </div>
                   <span className="text-sm text-white/60">{f.label}</span>
@@ -84,14 +81,8 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col overflow-y-auto">
         {/* Mobile logo */}
         <div className="px-6 pt-5 lg:hidden">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-foreground"
-          >
-            <Logo className="h-5 w-5 text-primary" />
-            <span className="font-heading text-base font-bold">
-              ImageForge
-            </span>
+          <Link href="/" className="text-foreground">
+            <Logo mono />
           </Link>
         </div>
 

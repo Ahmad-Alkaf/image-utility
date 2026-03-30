@@ -6,7 +6,7 @@ import { TOOLS } from "@/lib/constants";
 import { getStats, areStatsWorthShowing } from "@/lib/stats";
 import { Shield, Clock, HardDrive, Zap, ArrowRight, Images, Users, TrendingDown } from "lucide-react";
 
-const FORMATS = ["PNG", "JPEG", "WebP", "AVIF", "TIFF", "GIF", "SVG"];
+const FORMATS = ["PNG", "JPEG", "WebP", "AVIF", "TIFF", "GIF"];
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -112,20 +112,19 @@ export default function HomePage() {
             {/* chip */}
             <div className="animate-fade-in inline-flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
               <Zap className="h-3 w-3 text-primary" />
-              No uploads to third parties — processed on our servers
+              Privacy-first — your images never reach third parties
             </div>
 
-            <h1 className="animate-fade-in-up font-heading text-4xl font-extrabold tracking-tight [animation-delay:80ms] sm:text-5xl lg:text-6xl">
+            <h1 className="animate-fade-in-up font-display text-5xl tracking-tight [animation-delay:80ms] sm:text-6xl lg:text-7xl">
               Your image{" "}
-              <span className="bg-linear-to-r from-primary via-chart-1 to-chart-4 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-primary via-chart-1 to-chart-4 bg-clip-text italic text-transparent">
                 workshop.
               </span>
             </h1>
 
             <p className="animate-fade-in-up mx-auto max-w-lg text-lg leading-relaxed text-muted-foreground [animation-delay:160ms]">
               Convert, compress, resize, remove backgrounds, and more — fast,
-              private, and hassle-free. No credit card, no sign-ups for basic
-              tools.
+              private, and hassle-free. Always free, no credit card required.
             </p>
 
             <div className="animate-fade-in-up flex flex-wrap items-center justify-center gap-3 pt-1 [animation-delay:240ms]">
@@ -207,7 +206,7 @@ export default function HomePage() {
                 <p className="font-medium text-foreground">
                   Instant processing
                 </p>
-                <p className="text-muted-foreground">Server-side with Sharp</p>
+                <p className="text-muted-foreground">Results in seconds</p>
               </div>
             </div>
 

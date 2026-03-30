@@ -1,18 +1,25 @@
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import { Plus_Jakarta_Sans, Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
 });
 
-const manrope = Manrope({
-  variable: "--font-manrope",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  weight: "400",
+  style: ["normal", "italic"],
   subsets: ["latin"],
 });
 
@@ -42,7 +49,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html
         lang="en"
-        className={`${inter.variable} ${manrope.variable} h-full antialiased`}
+        className={`${plusJakarta.variable} ${bricolage.variable} ${instrumentSerif.variable} h-full antialiased`}
         suppressHydrationWarning
       >
         <body className="min-h-full flex flex-col">
