@@ -38,7 +38,8 @@ export async function convertImage(
       break;
     }
     case "gif": {
-      pipeline = pipeline.gif();
+      const colours = Math.max(2, Math.round((quality / 100) * 256));
+      pipeline = pipeline.gif({ colours });
       break;
     }
     default:

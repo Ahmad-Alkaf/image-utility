@@ -56,12 +56,24 @@ export function DownloadAllButton({
     const JSZip = (await import("jszip")).default;
     const zip = new JSZip();
 
+    const nameCounts = new Map<string, number>();
     await Promise.all(
       files.map(async (file) => {
         const response = await fetch(file.url);
         if (!response.ok) return; // skip failed downloads
         const blob = await response.blob();
-        zip.file(file.name, blob);
+
+        let zipName = file.name;
+        const count = nameCounts.get(zipName) || 0;
+        if (count > 0) {
+          const dotIdx = zipName.lastIndexOf(".");
+          const base = dotIdx > 0 ? zipName.slice(0, dotIdx) : zipName;
+          const ext = dotIdx > 0 ? zipName.slice(dotIdx) : "";
+          zipName = `${base} (${count})${ext}`;
+        }
+        nameCounts.set(file.name, count + 1);
+
+        zip.file(zipName, blob);
       })
     );
 

@@ -127,6 +127,6 @@ export async function POST(request: NextRequest) {
     if (error instanceof ZodError || error instanceof SyntaxError) {
       return NextResponse.json({ error: "Invalid options" }, { status: 400 });
     }
-    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Processing failed" }, { status: 500 });
   }
 }

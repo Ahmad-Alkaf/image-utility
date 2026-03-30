@@ -31,9 +31,10 @@ export const resizeSchema = z.object({
 }).refine((data) => {
   if (data.mode === "exact") return data.width != null || data.height != null;
   if (data.mode === "percentage") return data.percentage != null;
+  if (data.mode === "crop") return data.cropArea != null;
   return true;
 }, {
-  message: "Exact mode requires at least one of width or height; percentage mode requires percentage",
+  message: "Exact mode requires width or height; percentage mode requires percentage; crop mode requires cropArea",
 });
 
 export const compressSchema = z.object({
@@ -63,6 +64,11 @@ export const watermarkSchema = z.object({
       "tile",
     ])
     .default("bottom-right"),
+}).refine((data) => {
+  if (data.type === "text") return !!data.text;
+  return true;
+}, {
+  message: "Text watermark requires the text field",
 });
 
 export const filtersSchema = z.object({
