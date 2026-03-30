@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { CROP_PRESETS, UPLOAD_LIMITS } from "@/lib/constants";
+import { CROP_PRESETS, UPLOAD_LIMITS, TOOL_ACCEPTED_TYPES } from "@/lib/constants";
 import { Lock, Unlock, Crop, Maximize2 } from "lucide-react";
 
 type CropPreset = keyof typeof CROP_PRESETS;
@@ -310,6 +310,7 @@ export function ResizeForm() {
         onFilesSelected={setFiles}
         maxFiles={limits.maxFiles}
         maxFileSize={limits.maxFileSize}
+        accept={[...TOOL_ACCEPTED_TYPES.resize]}
         isSignedIn={!!isSignedIn}
         selectedFiles={files}
         onRemoveFile={removeFile}
@@ -471,10 +472,12 @@ export function ResizeForm() {
                   <Input
                     type="number"
                     min={0}
+                    max={imageDimensions.width > 0 ? imageDimensions.width - 1 : undefined}
                     value={Math.round(cropArea.x)}
-                    onChange={(e) =>
-                      setCropArea((prev) => ({ ...prev, x: parseInt(e.target.value, 10) || 0 }))
-                    }
+                    onChange={(e) => {
+                      const v = Math.min(parseInt(e.target.value, 10) || 0, Math.max(0, imageDimensions.width - 1));
+                      setCropArea((prev) => ({ ...prev, x: Math.max(0, v) }));
+                    }}
                   />
                 </div>
                 <div className="space-y-1">
@@ -482,10 +485,12 @@ export function ResizeForm() {
                   <Input
                     type="number"
                     min={0}
+                    max={imageDimensions.height > 0 ? imageDimensions.height - 1 : undefined}
                     value={Math.round(cropArea.y)}
-                    onChange={(e) =>
-                      setCropArea((prev) => ({ ...prev, y: parseInt(e.target.value, 10) || 0 }))
-                    }
+                    onChange={(e) => {
+                      const v = Math.min(parseInt(e.target.value, 10) || 0, Math.max(0, imageDimensions.height - 1));
+                      setCropArea((prev) => ({ ...prev, y: Math.max(0, v) }));
+                    }}
                   />
                 </div>
                 <div className="space-y-1">
@@ -493,13 +498,13 @@ export function ResizeForm() {
                   <Input
                     type="number"
                     min={1}
+                    max={imageDimensions.width > 0 ? imageDimensions.width - cropArea.x : undefined}
                     value={Math.round(cropArea.width)}
-                    onChange={(e) =>
-                      setCropArea((prev) => ({
-                        ...prev,
-                        width: parseInt(e.target.value, 10) || 1,
-                      }))
-                    }
+                    onChange={(e) => {
+                      const maxW = imageDimensions.width > 0 ? imageDimensions.width - cropArea.x : Infinity;
+                      const v = Math.min(parseInt(e.target.value, 10) || 1, maxW);
+                      setCropArea((prev) => ({ ...prev, width: Math.max(1, v) }));
+                    }}
                   />
                 </div>
                 <div className="space-y-1">
@@ -507,13 +512,13 @@ export function ResizeForm() {
                   <Input
                     type="number"
                     min={1}
+                    max={imageDimensions.height > 0 ? imageDimensions.height - cropArea.y : undefined}
                     value={Math.round(cropArea.height)}
-                    onChange={(e) =>
-                      setCropArea((prev) => ({
-                        ...prev,
-                        height: parseInt(e.target.value, 10) || 1,
-                      }))
-                    }
+                    onChange={(e) => {
+                      const maxH = imageDimensions.height > 0 ? imageDimensions.height - cropArea.y : Infinity;
+                      const v = Math.min(parseInt(e.target.value, 10) || 1, maxH);
+                      setCropArea((prev) => ({ ...prev, height: Math.max(1, v) }));
+                    }}
                   />
                 </div>
               </div>

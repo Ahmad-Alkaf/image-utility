@@ -20,7 +20,6 @@ import {
   Sun,
   Moon,
   Menu,
-  Image as ImageIcon,
   ArrowRightLeft,
   Eraser,
   Maximize2,
@@ -30,6 +29,7 @@ import {
   Info,
   LayoutDashboard,
 } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 
 const toolLinks = [
@@ -51,7 +51,7 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5 text-primary" />
+            <Logo className="h-5 w-5 text-primary" />
             <span className="font-heading text-lg font-bold">ImageForge</span>
           </Link>
 

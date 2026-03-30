@@ -6,7 +6,7 @@ import { generateStorageKey, storeFile } from "@/lib/storage";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { watermarkSchema } from "@/lib/validation";
 import { addWatermark } from "@/lib/processing/watermark";
-import { ACCEPTED_IMAGE_TYPES, UPLOAD_LIMITS } from "@/lib/constants";
+import { TOOL_ACCEPTED_TYPES, UPLOAD_LIMITS } from "@/lib/constants";
 import { ProcessingType, ProcessingStatus } from "@/generated/prisma";
 import { ZodError } from "zod";
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    if (!TOOL_ACCEPTED_TYPES.watermark.includes(file.type)) {
       return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     }
     if (file.size > UPLOAD_LIMITS.authenticated.maxFileSize) {

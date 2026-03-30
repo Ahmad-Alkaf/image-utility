@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Camera, MapPin, FileImage, ShieldOff, Loader2 } from "lucide-react";
-import { UPLOAD_LIMITS } from "@/lib/constants";
+import { UPLOAD_LIMITS, TOOL_ACCEPTED_TYPES } from "@/lib/constants";
 
 interface MetadataResponse {
   format: string;
@@ -158,6 +158,7 @@ export function MetadataViewer() {
         onFilesSelected={handleFilesSelected}
         maxFiles={1}
         maxFileSize={limits.maxFileSize}
+        accept={[...TOOL_ACCEPTED_TYPES.metadata]}
         isSignedIn={!!isSignedIn}
         selectedFiles={files}
         onRemoveFile={(index) => {

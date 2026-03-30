@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
 
-import { ACCEPTED_IMAGE_TYPES, UPLOAD_LIMITS } from "@/lib/constants";
+import { TOOL_ACCEPTED_TYPES, UPLOAD_LIMITS } from "@/lib/constants";
 
 const POSITIONS = [
   { value: "top-left", label: "TL", row: 0, col: 0 },
@@ -109,6 +109,7 @@ export function WatermarkForm() {
         onFilesSelected={(selected) => setFiles(selected)}
         maxFiles={1}
         maxFileSize={UPLOAD_LIMITS.authenticated.maxFileSize}
+        accept={[...TOOL_ACCEPTED_TYPES.watermark]}
         isSignedIn={true}
         selectedFiles={files}
         onRemoveFile={removeFile}
@@ -206,7 +207,7 @@ export function WatermarkForm() {
               <input
                 ref={watermarkInputRef}
                 type="file"
-                accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                accept={TOOL_ACCEPTED_TYPES.watermark.join(",")}
                 onChange={handleWatermarkImageSelect}
                 className="hidden"
               />

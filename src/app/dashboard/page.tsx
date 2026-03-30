@@ -20,6 +20,19 @@ export default async function DashboardPage() {
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
     take: 50,
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      inputFileName: true,
+      inputFileSize: true,
+      outputFileName: true,
+      outputFileSize: true,
+      createdAt: true,
+      completedAt: true,
+      processingTimeMs: true,
+      downloadToken: true,
+    },
   });
 
   const stats = {

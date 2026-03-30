@@ -13,14 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Download } from "lucide-react";
-import { UPLOAD_LIMITS } from "@/lib/constants";
-
-const REMOVE_BG_ACCEPTED_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-];
+import { UPLOAD_LIMITS, TOOL_ACCEPTED_TYPES } from "@/lib/constants";
 
 type BackgroundType = "transparent" | "color" | "blur";
 
@@ -90,7 +83,7 @@ export function RemoveBgForm() {
         onFilesSelected={setFiles}
         maxFiles={1}
         maxFileSize={UPLOAD_LIMITS.authenticated.maxFileSize}
-        accept={REMOVE_BG_ACCEPTED_TYPES}
+        accept={[...TOOL_ACCEPTED_TYPES["remove-bg"]]}
         isSignedIn={true}
         selectedFiles={files}
         onRemoveFile={removeFile}

@@ -13,15 +13,22 @@ export async function compressImage(inputBuffer: Buffer, options: CompressOption
 
   const quality = options.quality;
 
+  const formatOptions = (q: number) => {
+    if (targetFormat === "png") {
+      return { compressionLevel: Math.round((1 - q / 100) * 9) };
+    }
+    return { quality: q };
+  };
+
   if (options.mode === "auto") {
     // Smart compression: find optimal quality that reduces size significantly
     // Start at 85, try to achieve at least 30% reduction
-    let bestBuffer = await sharp(inputBuffer).toFormat(targetFormat, { quality: 85 }).toBuffer();
+    let bestBuffer = await sharp(inputBuffer).toFormat(targetFormat, formatOptions(85)).toBuffer();
     const reductionRatio = bestBuffer.length / inputBuffer.length;
 
     if (reductionRatio > 0.9) {
       // Not enough reduction, try lower quality
-      bestBuffer = await sharp(inputBuffer).toFormat(targetFormat, { quality: 70 }).toBuffer();
+      bestBuffer = await sharp(inputBuffer).toFormat(targetFormat, formatOptions(70)).toBuffer();
     }
 
     const info = await sharp(bestBuffer).metadata();
@@ -37,7 +44,7 @@ export async function compressImage(inputBuffer: Buffer, options: CompressOption
   }
 
   // Manual mode
-  const output = await sharp(inputBuffer).toFormat(targetFormat, { quality }).toBuffer();
+  const output = await sharp(inputBuffer).toFormat(targetFormat, formatOptions(quality)).toBuffer();
   const info = await sharp(output).metadata();
 
   return {

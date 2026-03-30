@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { generateStorageKey, storeFile } from "@/lib/storage";
-import { UPLOAD_LIMITS, ACCEPTED_IMAGE_TYPES } from "@/lib/constants";
+import { UPLOAD_LIMITS, TOOL_ACCEPTED_TYPES } from "@/lib/constants";
+
+const ALL_ACCEPTED_TYPES = [...new Set(Object.values(TOOL_ACCEPTED_TYPES).flat())];
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
     const results = [];
 
     for (const file of files) {
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      if (!ALL_ACCEPTED_TYPES.includes(file.type)) {
         return NextResponse.json(
           { error: `Unsupported file type: ${file.type}` },
           { status: 400 }

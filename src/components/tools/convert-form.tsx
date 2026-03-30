@@ -19,7 +19,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { UPLOAD_LIMITS } from "@/lib/constants";
+import { UPLOAD_LIMITS, TOOL_ACCEPTED_TYPES } from "@/lib/constants";
 
 const FORMAT_OPTIONS = [
   { value: "png", label: "PNG" },
@@ -84,6 +84,7 @@ export function ConvertForm() {
         onFilesSelected={setFiles}
         maxFiles={limits.maxFiles}
         maxFileSize={limits.maxFileSize}
+        accept={[...TOOL_ACCEPTED_TYPES.convert]}
         isSignedIn={!!isSignedIn}
         selectedFiles={files}
         onRemoveFile={removeFile}
@@ -92,7 +93,7 @@ export function ConvertForm() {
       {files.length > 0 && previews[0] && (
         <ImagePreview
           originalSrc={previews[0]}
-          processedSrc={result ? `${result.downloadUrl}?inline=true` : undefined}
+          processedSrc={result ? `${result.downloadUrl}&inline=true` : undefined}
           originalMeta={{
             fileName: files[0].name,
             size: files[0].size,

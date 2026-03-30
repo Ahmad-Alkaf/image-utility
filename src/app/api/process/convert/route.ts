@@ -6,8 +6,9 @@ import { generateStorageKey, storeFile } from "@/lib/storage";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { convertSchema } from "@/lib/validation";
 import { convertImage } from "@/lib/processing/convert";
-import { ACCEPTED_IMAGE_TYPES, UPLOAD_LIMITS, FORMAT_MIME_TYPES } from "@/lib/constants";
+import { TOOL_ACCEPTED_TYPES, UPLOAD_LIMITS, FORMAT_MIME_TYPES } from "@/lib/constants";
 import { ProcessingType, ProcessingStatus } from "@/generated/prisma";
+import { ZodError } from "zod";
 
 export async function POST(request: NextRequest) {
   let jobId: string | undefined;
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    if (!TOOL_ACCEPTED_TYPES.convert.includes(file.type)) {
       return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     }
     const maxFileSize = userId ? UPLOAD_LIMITS.authenticated.maxFileSize : UPLOAD_LIMITS.anonymous.maxFileSize;
@@ -116,6 +117,9 @@ export async function POST(request: NextRequest) {
           errorMessage: error instanceof Error ? error.message : "Unknown error",
         },
       }).catch(console.error);
+    }
+    if (error instanceof ZodError || error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid options" }, { status: 400 });
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Processing failed" },

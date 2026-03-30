@@ -42,6 +42,7 @@ interface Job {
   createdAt: string;
   completedAt: string | null;
   processingTimeMs: number | null;
+  downloadToken: string | null;
 }
 
 interface DashboardContentProps {
@@ -201,7 +202,7 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
                     <TableCell className="text-right">
                       {job.status === "COMPLETED" && !isExpired ? (
                         <DownloadButton
-                          downloadUrl={`/api/download/${job.id}`}
+                          downloadUrl={`/api/download/${job.id}${job.downloadToken ? `?token=${job.downloadToken}` : ""}`}
                           fileName={job.outputFileName || "processed"}
                           variant="outline"
                           size="sm"

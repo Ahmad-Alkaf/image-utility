@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -11,13 +11,13 @@ import {
 } from "@/components/ui/popover";
 import { Upload, X, FileImage, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ACCEPTED_IMAGE_TYPES, UPLOAD_LIMITS } from "@/lib/constants";
+import { UPLOAD_LIMITS } from "@/lib/constants";
 
 interface ImageDropzoneProps {
   onFilesSelected: (files: File[]) => void;
   maxFiles?: number;
   maxFileSize?: number;
-  accept?: string[];
+  accept: string[];
   disabled?: boolean;
   uploading?: boolean;
   uploadProgress?: number;
@@ -36,7 +36,7 @@ export function ImageDropzone({
   onFilesSelected,
   maxFiles = 1,
   maxFileSize,
-  accept = ACCEPTED_IMAGE_TYPES,
+  accept,
   disabled = false,
   uploading = false,
   uploadProgress = 0,
@@ -45,6 +45,7 @@ export function ImageDropzone({
   isSignedIn = false,
 }: ImageDropzoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputId = useId();
 
   const limits = isSignedIn ? UPLOAD_LIMITS.authenticated : UPLOAD_LIMITS.anonymous;
   const effectiveMaxFileSize = maxFileSize ?? limits.maxFileSize;
@@ -100,7 +101,7 @@ export function ImageDropzone({
             onDrop={handleDrop}
             className="flex flex-col items-center justify-center gap-4 p-12 cursor-pointer"
             onClick={() =>
-              document.getElementById("file-input")?.click()
+              document.getElementById(fileInputId)?.click()
             }
           >
             <div className="rounded-lg border border-dashed border-foreground/15 p-3">
@@ -135,7 +136,10 @@ export function ImageDropzone({
                   <div className="space-y-1 text-muted-foreground">
                     <p>Max file size: {maxSizeMB} MB per file</p>
                     <p>Max files: {effectiveMaxFiles}</p>
-                    <p>Formats: PNG, JPEG, WebP, AVIF, TIFF, GIF, SVG</p>
+                    <p>Formats: {[...new Set(accept.map((t) => {
+                      const name = t.replace("image/", "").replace("svg+xml", "SVG");
+                      return name === "jpg" ? null : name.toUpperCase();
+                    }).filter(Boolean))].join(", ")}</p>
                   </div>
                   {!isSignedIn && (
                     <p className="text-primary pt-1">
@@ -146,7 +150,7 @@ export function ImageDropzone({
               </Popover>
             </div>
             <input
-              id="file-input"
+              id={fileInputId}
               type="file"
               accept={accept.join(",")}
               multiple={effectiveMaxFiles > 1}
@@ -196,7 +200,7 @@ export function ImageDropzone({
                 size="sm"
                 className="w-full"
                 onClick={() =>
-                  document.getElementById("file-input")?.click()
+                  document.getElementById(fileInputId)?.click()
                 }
               >
                 <Upload className="h-4 w-4 mr-2" />
@@ -204,7 +208,7 @@ export function ImageDropzone({
               </Button>
             )}
             <input
-              id="file-input"
+              id={fileInputId}
               type="file"
               accept={accept.join(",")}
               multiple={effectiveMaxFiles > 1}

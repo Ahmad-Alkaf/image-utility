@@ -20,7 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { UPLOAD_LIMITS } from "@/lib/constants";
+import { UPLOAD_LIMITS, TOOL_ACCEPTED_TYPES } from "@/lib/constants";
 
 const FORMAT_OPTIONS = [
   { value: "original", label: "Keep Original" },
@@ -92,6 +92,7 @@ export function CompressForm() {
         onFilesSelected={setFiles}
         maxFiles={1}
         maxFileSize={limits.maxFileSize}
+        accept={[...TOOL_ACCEPTED_TYPES.compress]}
         isSignedIn={!!isSignedIn}
         selectedFiles={files}
         onRemoveFile={removeFile}

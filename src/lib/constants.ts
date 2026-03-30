@@ -28,7 +28,12 @@ export const MIME_TO_FORMAT: Record<string, ImageFormat> = {
   "image/gif": "gif",
 };
 
-export const ACCEPTED_IMAGE_TYPES = [
+/**
+ * Base raster MIME types supported by sharp for both input and output.
+ * Do NOT use this directly for validation — use TOOL_ACCEPTED_TYPES instead,
+ * since each tool has different format capabilities.
+ */
+const RASTER_IMAGE_TYPES = [
   "image/png",
   "image/jpeg",
   "image/jpg",
@@ -36,8 +41,31 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/avif",
   "image/tiff",
   "image/gif",
-  "image/svg+xml",
-];
+] as const;
+
+/**
+ * Per-tool accepted MIME types. Each tool explicitly declares what it supports
+ * based on its processing capabilities:
+ *
+ * - convert/metadata: Accept SVG because sharp can rasterize SVG on input,
+ *   and these tools either output to an explicit target format (convert)
+ *   or only read metadata without producing image output (metadata read).
+ *
+ * - resize/compress/filters/watermark: Raster only because they output in
+ *   the same format as input, and sharp cannot output SVG.
+ *
+ * - remove-bg: Limited to formats supported by the @imgly/background-removal
+ *   WASM library.
+ */
+export const TOOL_ACCEPTED_TYPES: Record<string, string[]> = {
+  convert: [...RASTER_IMAGE_TYPES, "image/svg+xml"],
+  resize: [...RASTER_IMAGE_TYPES],
+  compress: [...RASTER_IMAGE_TYPES],
+  filters: [...RASTER_IMAGE_TYPES],
+  watermark: [...RASTER_IMAGE_TYPES],
+  metadata: [...RASTER_IMAGE_TYPES, "image/svg+xml"],
+  "remove-bg": ["image/png", "image/jpeg", "image/jpg", "image/webp"],
+};
 
 export const UPLOAD_LIMITS = {
   anonymous: {

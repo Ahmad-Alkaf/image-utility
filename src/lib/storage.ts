@@ -96,9 +96,3 @@ export async function deleteFile(key: string): Promise<void> {
   }
 }
 
-export function getPublicUrl(jobId: string, downloadToken: string): string {
-  if (STORAGE_TYPE === "s3") {
-    return `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}/${jobId}`;
-  }
-  return `/api/download/${encodeURIComponent(jobId)}?token=${encodeURIComponent(downloadToken)}`;
-}

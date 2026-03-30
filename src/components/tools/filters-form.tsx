@@ -12,7 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-import { UPLOAD_LIMITS } from "@/lib/constants";
+import { UPLOAD_LIMITS, TOOL_ACCEPTED_TYPES } from "@/lib/constants";
 
 type Preset = "grayscale" | "sepia" | "invert" | "vintage" | "cool" | "warm";
 
@@ -104,6 +104,7 @@ export function FiltersForm() {
         onFilesSelected={setFiles}
         maxFiles={1}
         maxFileSize={UPLOAD_LIMITS.authenticated.maxFileSize}
+        accept={[...TOOL_ACCEPTED_TYPES.filters]}
         isSignedIn={true}
         selectedFiles={files}
         onRemoveFile={removeFile}
@@ -127,7 +128,7 @@ export function FiltersForm() {
       {files.length > 0 && result && (
         <ImagePreview
           originalSrc={previews[0]}
-          processedSrc={`${result.downloadUrl}?inline=true`}
+          processedSrc={`${result.downloadUrl}&inline=true`}
         />
       )}
 

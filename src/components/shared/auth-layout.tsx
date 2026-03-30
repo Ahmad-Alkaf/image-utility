@@ -1,12 +1,12 @@
 import Link from "next/link";
 import {
-  Image as ImageIcon,
   ArrowLeft,
   Zap,
   Shield,
   Sparkles,
   Clock,
 } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 const features = [
   { icon: Zap, label: "Instant processing" },
@@ -43,7 +43,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
             href="/"
             className="inline-flex items-center gap-2.5 text-white/90 transition-opacity hover:opacity-80"
           >
-            <ImageIcon className="h-5 w-5" />
+            <Logo className="h-5 w-5" />
             <span className="font-heading text-lg font-bold tracking-tight">
               ImageForge
             </span>
@@ -88,7 +88,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
             href="/"
             className="inline-flex items-center gap-2 text-foreground"
           >
-            <ImageIcon className="h-5 w-5 text-primary" />
+            <Logo className="h-5 w-5 text-primary" />
             <span className="font-heading text-base font-bold">
               ImageForge
             </span>
