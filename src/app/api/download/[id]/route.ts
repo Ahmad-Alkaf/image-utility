@@ -23,23 +23,25 @@ export async function GET(
       );
     }
 
-    if (job.userId) {
-      const dbUser = userId ? await syncUser(userId) : null;
-      if (!dbUser || dbUser.id !== job.userId) {
-        return NextResponse.json(
-          { error: "Forbidden" },
-          { status: 403 }
-        );
-      }
-    } else {
-      const url = new URL(req.url);
-      const token = url.searchParams.get("token");
-      if (!token || token !== job.downloadToken) {
-        return NextResponse.json(
-          { error: "Forbidden" },
-          { status: 403 }
-        );
-      }
+    // Accept either a valid session (matching userId) OR a valid download token
+    const url = new URL(req.url);
+    const token = url.searchParams.get("token");
+    const hasValidToken = !!token && token === job.downloadToken;
+
+    let hasValidSession = false;
+    if (job.userId && userId) {
+      const dbUser = await syncUser(userId);
+      hasValidSession = !!dbUser && dbUser.id === job.userId;
+    } else if (!job.userId) {
+      // Anonymous job with no userId -- session not required, token is the only gate
+      hasValidSession = false;
+    }
+
+    if (!hasValidSession && !hasValidToken) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
+      );
     }
 
     // Check if file has expired (24 hours)
@@ -55,7 +57,6 @@ export async function GET(
     const fileName = job.outputFileName || "processed-image";
     const mimeType = job.outputMimeType || "application/octet-stream";
 
-    const url = new URL(req.url);
     const inline = url.searchParams.get("inline") === "true";
     const safeFileName = fileName.replace(/[^\w.\-]/g, '_');
     const disposition = inline ? "inline" : `attachment; filename="${safeFileName}"`;

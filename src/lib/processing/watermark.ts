@@ -94,8 +94,8 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
         >${escapedText}</text>
       </svg>`;
       tileBuffer = Buffer.from(tileSvg);
-    } else {
-      tileBuffer = await sharp(options.watermarkImageBuffer!)
+    } else if (options.type === "image" && options.watermarkImageBuffer) {
+      tileBuffer = await sharp(options.watermarkImageBuffer)
         .resize(tileSize, tileSize, { fit: "inside" })
         .ensureAlpha()
         .composite([{
@@ -105,6 +105,10 @@ export async function addWatermark(inputBuffer: Buffer, options: WatermarkOption
           blend: "dest-in",
         }])
         .toBuffer();
+    } else {
+      // No valid watermark source for tiling — return the image unmodified
+      const output = await sharp(inputBuffer).toBuffer();
+      return { buffer: output, info: { format: metadata.format || "png", width: imgWidth, height: imgHeight, size: output.length } };
     }
 
     pipeline = pipeline.composite([{

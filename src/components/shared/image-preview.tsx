@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,19 +41,6 @@ export function ImagePreview({
   const [sliderPosition, setSliderPosition] = useState(50);
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
-  const [containerWidth, setContainerWidth] = useState<number | null>(null);
-
-  useEffect(() => {
-    const el = sliderRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   const handleMouseDown = useCallback(() => {
     isDragging.current = true;
@@ -188,8 +175,8 @@ export function ImagePreview({
               style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
             />
             <div
-              className="absolute inset-0 overflow-hidden"
-              style={{ width: `${sliderPosition}%` }}
+              className="absolute inset-0"
+              style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -199,9 +186,6 @@ export function ImagePreview({
                 style={{
                   transform: `scale(${zoom})`,
                   transformOrigin: "top left",
-                  width: containerWidth
-                    ? `${containerWidth}px`
-                    : "100%",
                 }}
               />
             </div>

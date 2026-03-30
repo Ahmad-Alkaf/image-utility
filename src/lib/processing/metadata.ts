@@ -86,12 +86,14 @@ export async function stripMetadata(
     .toFormat(format as keyof sharp.FormatEnum)
     .toBuffer();
 
+  const outputMeta = await sharp(output).metadata();
+
   return {
     buffer: output,
     info: {
       format,
-      width: metadata.width || 0,
-      height: metadata.height || 0,
+      width: outputMeta.width || 0,
+      height: outputMeta.height || 0,
       size: output.length,
     },
   };

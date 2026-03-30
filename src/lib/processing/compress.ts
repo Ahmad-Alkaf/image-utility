@@ -31,6 +31,19 @@ export async function compressImage(inputBuffer: Buffer, options: CompressOption
       bestBuffer = await sharp(inputBuffer).toFormat(targetFormat, formatOptions(70)).toBuffer();
     }
 
+    // If output is not smaller and format is unchanged, return the original to avoid enlargement
+    if (bestBuffer.length >= inputBuffer.length && targetFormat === inputFormat) {
+      return {
+        buffer: inputBuffer,
+        info: {
+          format: inputFormat,
+          width: metadata.width || 0,
+          height: metadata.height || 0,
+          size: inputBuffer.length,
+        },
+      };
+    }
+
     const info = await sharp(bestBuffer).metadata();
     return {
       buffer: bestBuffer,
