@@ -67,7 +67,7 @@ export function Footer() {
               rel="noopener"
               className="transition-colors hover:text-foreground"
             >
-              KafLabs LLC
+              KafLabs
             </a>
             . All rights reserved.
           </span>
