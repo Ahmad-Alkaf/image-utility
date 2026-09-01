@@ -6,6 +6,10 @@ import { TOOLS } from "@/lib/constants";
 import { getStats, areStatsWorthShowing } from "@/lib/stats";
 import { Shield, Clock, HardDrive, Zap, ArrowRight, Images, Users, TrendingDown } from "lucide-react";
 
+// Revalidate the prerendered home page so the stats section is refreshed
+// instead of being frozen at build time (matches the 30 min stats cache).
+export const revalidate = 1800;
+
 const FORMATS = ["PNG", "JPEG", "WebP", "AVIF", "TIFF", "GIF"];
 
 function formatBytes(bytes: number): string {
