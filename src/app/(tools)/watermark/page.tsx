@@ -1,16 +1,12 @@
-import { Metadata } from "next";
+import { ToolPage, toolMetadata } from "@/components/shared/tool-page";
 import { WatermarkForm } from "@/components/tools/watermark-form";
 
-export const metadata: Metadata = { title: "Watermark" };
+export const metadata = toolMetadata("watermark");
 
-export default function WatermarkPage() {
+export default function Page() {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-1 mb-6">
-        <h1 className="text-2xl font-heading font-bold">Watermark</h1>
-        <p className="text-sm text-muted-foreground">Add text or image watermarks with customizable placement and opacity.</p>
-      </div>
+    <ToolPage id="watermark">
       <WatermarkForm />
-    </div>
+    </ToolPage>
   );
 }

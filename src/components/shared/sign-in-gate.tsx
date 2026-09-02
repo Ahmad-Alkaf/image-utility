@@ -2,18 +2,26 @@
 
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { Lock } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UPLOAD_LIMITS } from "@/lib/constants";
 
 interface SignInGateProps {
   children: React.ReactNode;
+  /** Lower-case tool name used in the sentence, e.g. "watermark". */
   toolName: string;
 }
 
 export function SignInGate({ children, toolName }: SignInGateProps) {
   const { isSignedIn, isLoaded } = useUser();
 
-  if (!isLoaded) return null;
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center rounded-lg border bg-card p-10">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!isSignedIn) {
     return (
@@ -28,18 +36,24 @@ export function SignInGate({ children, toolName }: SignInGateProps) {
               Sign in to continue
             </h3>
             <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-              The{" "}
-              <span className="font-medium text-foreground">{toolName}</span>{" "}
-              tool requires a free account.
+              The <span className="font-medium text-foreground">{toolName}</span>{" "}
+              tool needs a free account. Members also get files up to{" "}
+              {UPLOAD_LIMITS.authenticated.maxFileSize / (1024 * 1024)} MB and a
+              history of their results.
             </p>
           </div>
 
-          <Button size="lg" render={<Link href="/sign-in" />}>
-            Sign in
-          </Button>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button size="lg" render={<Link href="/sign-in" />}>
+              Sign in
+            </Button>
+            <Button size="lg" variant="outline" render={<Link href="/sign-up" />}>
+              Create account
+            </Button>
+          </div>
 
           <p className="text-xs text-muted-foreground">
-            No credit card required
+            Free. No credit card needed.
           </p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import ExifReader from "exif-reader";
+import { outputFormatFor } from "@/lib/processing/format";
 
 interface MetadataResult {
   format: string;
@@ -11,8 +12,34 @@ interface MetadataResult {
   depth: string;
   density?: number;
   hasAlpha: boolean;
+  hasProfile: boolean;
+  orientation?: number;
   exif: Record<string, unknown>;
   gps?: { latitude: number; longitude: number };
+}
+
+/** EXIF fields that are byte blobs or of no use to a reader. */
+const HIDDEN_EXIF_KEYS = new Set([
+  "MakerNote",
+  "UserComment",
+  "ExifVersion",
+  "FlashpixVersion",
+  "ComponentsConfiguration",
+  "SceneType",
+  "FileSource",
+  "InteropOffset",
+  "ExifOffset",
+  "GPSInfo",
+  "PrintImageMatching",
+  "ImageUniqueID",
+  "CFAPattern",
+]);
+
+function cleanExifValue(value: unknown): unknown {
+  if (value instanceof Date) return value.toISOString().replace("T", " ").slice(0, 19);
+  if (Buffer.isBuffer(value) || value instanceof Uint8Array) return undefined;
+  if (typeof value === "string") return value.replace(/\0+$/g, "").trim() || undefined;
+  return value;
 }
 
 export async function readMetadata(
@@ -29,10 +56,15 @@ export async function readMetadata(
 
       // Flatten all EXIF sections into a single object
       for (const [key, value] of Object.entries(exifData)) {
-        if (value && typeof value === "object" && !Array.isArray(value)) {
-          Object.assign(exif, value);
-        } else {
-          exif[key] = value;
+        if (value && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date) && !Buffer.isBuffer(value)) {
+          for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+            if (HIDDEN_EXIF_KEYS.has(k)) continue;
+            const cleaned = cleanExifValue(v);
+            if (cleaned !== undefined) exif[k] = cleaned;
+          }
+        } else if (!HIDDEN_EXIF_KEYS.has(key)) {
+          const cleaned = cleanExifValue(value);
+          if (cleaned !== undefined) exif[key] = cleaned;
         }
       }
 
@@ -67,23 +99,27 @@ export async function readMetadata(
     depth: metadata.depth || "unknown",
     density: metadata.density,
     hasAlpha: metadata.hasAlpha || false,
+    hasProfile: metadata.hasProfile || false,
+    orientation: metadata.orientation,
     exif,
     gps,
   };
 }
 
-export async function stripMetadata(
-  inputBuffer: Buffer
-): Promise<{
+export interface StripResult {
   buffer: Buffer;
   info: { format: string; width: number; height: number; size: number };
-}> {
-  const metadata = await sharp(inputBuffer).metadata();
-  const format = metadata.format || "png";
+}
 
+export async function stripMetadata(inputBuffer: Buffer): Promise<StripResult> {
+  const metadata = await sharp(inputBuffer).metadata();
+  const format = outputFormatFor(metadata.format);
+
+  // .rotate() bakes in the EXIF orientation, then sharp drops every
+  // EXIF/IPTC/XMP block because withMetadata() is not called.
   const output = await sharp(inputBuffer)
-    .rotate() // auto-orient then discard all EXIF/metadata
-    .toFormat(format as keyof sharp.FormatEnum)
+    .rotate()
+    .toFormat(format)
     .toBuffer();
 
   const outputMeta = await sharp(output).metadata();

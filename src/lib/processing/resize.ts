@@ -1,4 +1,6 @@
 import sharp from "sharp";
+import { ProcessingError } from "@/lib/processing/errors";
+import { outputFormatFor } from "@/lib/processing/format";
 
 interface ResizeOptions {
   mode: "exact" | "percentage" | "crop";
@@ -9,23 +11,33 @@ interface ResizeOptions {
   cropArea?: { x: number; y: number; width: number; height: number };
 }
 
-export async function resizeImage(inputBuffer: Buffer, options: ResizeOptions): Promise<{ buffer: Buffer; info: { format: string; width: number; height: number; size: number } }> {
+export interface ResizeResult {
+  buffer: Buffer;
+  info: { format: string; width: number; height: number; size: number };
+}
+
+export async function resizeImage(
+  inputBuffer: Buffer,
+  options: ResizeOptions
+): Promise<ResizeResult> {
   const metadata = await sharp(inputBuffer).metadata();
-  let pipeline = sharp(inputBuffer);
+  // Apply the EXIF orientation first so crop coordinates match what the
+  // user saw in the browser.
+  let pipeline = sharp(inputBuffer).rotate();
+  const orientedSwap = (metadata.orientation ?? 1) >= 5;
+  const imgW = (orientedSwap ? metadata.height : metadata.width) || 0;
+  const imgH = (orientedSwap ? metadata.width : metadata.height) || 0;
 
-  if (options.mode === "crop" && !options.cropArea) {
-    throw new Error("Crop mode requires a crop area");
-  }
-
-  if (options.mode === "crop" && options.cropArea) {
-    const imgW = metadata.width || 0;
-    const imgH = metadata.height || 0;
+  if (options.mode === "crop") {
+    if (!options.cropArea) {
+      throw new ProcessingError("Select a crop area first.");
+    }
     const cropLeft = Math.round(options.cropArea.x);
     const cropTop = Math.round(options.cropArea.y);
     const cropWidth = Math.round(options.cropArea.width);
     const cropHeight = Math.round(options.cropArea.height);
     if (cropLeft + cropWidth > imgW || cropTop + cropHeight > imgH) {
-      throw new Error("Crop area exceeds image dimensions");
+      throw new ProcessingError("The crop area is outside the image.");
     }
     pipeline = pipeline.extract({
       left: cropLeft,
@@ -33,17 +45,20 @@ export async function resizeImage(inputBuffer: Buffer, options: ResizeOptions): 
       width: cropWidth,
       height: cropHeight,
     });
-  } else if (options.mode === "percentage" && options.percentage) {
-    if (!metadata.width || !metadata.height) {
-      throw new Error("Cannot determine image dimensions for percentage resize");
+  } else if (options.mode === "percentage") {
+    if (!options.percentage) {
+      throw new ProcessingError("Enter a scale percentage.");
+    }
+    if (!imgW || !imgH) {
+      throw new ProcessingError("The image dimensions could not be read.");
     }
     const scale = options.percentage / 100;
-    const newWidth = Math.round(metadata.width * scale);
-    const newHeight = Math.round(metadata.height * scale);
+    const newWidth = Math.max(1, Math.round(imgW * scale));
+    const newHeight = Math.max(1, Math.round(imgH * scale));
     pipeline = pipeline.resize(newWidth, newHeight, { fit: "fill" });
-  } else if (options.mode === "exact") {
+  } else {
     if (!options.width && !options.height) {
-      throw new Error("At least one of width or height must be provided for exact resize");
+      throw new ProcessingError("Enter a width, a height, or both.");
     }
     pipeline = pipeline.resize(options.width, options.height, {
       fit: options.lockAspectRatio ? "inside" : "fill",
@@ -51,14 +66,14 @@ export async function resizeImage(inputBuffer: Buffer, options: ResizeOptions): 
     });
   }
 
-  const format = metadata.format || "png";
-  const output = await pipeline.toFormat(format as keyof sharp.FormatEnum).toBuffer();
+  const format = outputFormatFor(metadata.format);
+  const output = await pipeline.toFormat(format).toBuffer();
   const info = await sharp(output).metadata();
 
   return {
     buffer: output,
     info: {
-      format: format,
+      format,
       width: info.width || 0,
       height: info.height || 0,
       size: output.length,

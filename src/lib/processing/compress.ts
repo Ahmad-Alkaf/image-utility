@@ -1,4 +1,6 @@
 import sharp from "sharp";
+import { outputFormatFor } from "@/lib/processing/format";
+import type { ImageFormat } from "@/types";
 
 interface CompressOptions {
   mode: "auto" | "manual";
@@ -6,33 +8,57 @@ interface CompressOptions {
   format?: string;
 }
 
-export async function compressImage(inputBuffer: Buffer, options: CompressOptions): Promise<{ buffer: Buffer; info: { format: string; width: number; height: number; size: number } }> {
+export interface CompressResult {
+  buffer: Buffer;
+  info: { format: string; width: number; height: number; size: number };
+}
+
+/** Encoder options for one format at one quality level. */
+function encoderOptions(format: ImageFormat, quality: number) {
+  switch (format) {
+    case "png":
+      // Palette quantization (like pngquant) is what actually shrinks a PNG.
+      // Full quality keeps the file lossless.
+      return quality >= 100
+        ? { compressionLevel: 9, effort: 10 }
+        : { compressionLevel: 9, palette: true, quality, effort: 7 };
+    case "jpeg":
+      return { quality, mozjpeg: true };
+    case "webp":
+      return { quality, effort: 5 };
+    case "avif":
+      return { quality, effort: 4 };
+    case "tiff":
+      return { quality };
+    case "gif":
+      return { colours: Math.max(2, Math.round((quality / 100) * 256)) };
+  }
+}
+
+async function encode(input: Buffer, format: ImageFormat, quality: number): Promise<Buffer> {
+  return sharp(input).rotate().toFormat(format, encoderOptions(format, quality)).toBuffer();
+}
+
+export async function compressImage(
+  inputBuffer: Buffer,
+  options: CompressOptions
+): Promise<CompressResult> {
   const metadata = await sharp(inputBuffer).metadata();
-  const inputFormat = metadata.format || "jpeg";
-  const targetFormat = (options.format || inputFormat) as keyof sharp.FormatEnum;
+  const inputFormat = outputFormatFor(metadata.format);
+  const targetFormat = (options.format as ImageFormat | undefined) || inputFormat;
 
-  const quality = options.quality;
-
-  const formatOptions = (q: number) => {
-    if (targetFormat === "png") {
-      return { compressionLevel: Math.round((1 - q / 100) * 9) };
-    }
-    return { quality: q };
-  };
+  let output: Buffer;
 
   if (options.mode === "auto") {
-    // Smart compression: find optimal quality that reduces size significantly
-    // Start at 85, try to achieve at least 30% reduction
-    let bestBuffer = await sharp(inputBuffer).toFormat(targetFormat, formatOptions(85)).toBuffer();
-    const reductionRatio = bestBuffer.length / inputBuffer.length;
-
-    if (reductionRatio > 0.9) {
-      // Not enough reduction, try lower quality
-      bestBuffer = await sharp(inputBuffer).toFormat(targetFormat, formatOptions(70)).toBuffer();
+    // Try a good default first; step down once when it barely helped.
+    output = await encode(inputBuffer, targetFormat, 82);
+    if (output.length > inputBuffer.length * 0.9) {
+      output = await encode(inputBuffer, targetFormat, 70);
     }
 
-    // If output is not smaller, return the original to avoid enlargement
-    if (bestBuffer.length >= inputBuffer.length) {
+    // Never hand back something bigger than the original when the format
+    // did not change.
+    if (targetFormat === inputFormat && output.length >= inputBuffer.length) {
       return {
         buffer: inputBuffer,
         info: {
@@ -43,23 +69,11 @@ export async function compressImage(inputBuffer: Buffer, options: CompressOption
         },
       };
     }
-
-    const info = await sharp(bestBuffer).metadata();
-    return {
-      buffer: bestBuffer,
-      info: {
-        format: targetFormat,
-        width: info.width || metadata.width || 0,
-        height: info.height || metadata.height || 0,
-        size: bestBuffer.length,
-      },
-    };
+  } else {
+    output = await encode(inputBuffer, targetFormat, options.quality);
   }
 
-  // Manual mode
-  const output = await sharp(inputBuffer).toFormat(targetFormat, formatOptions(quality)).toBuffer();
   const info = await sharp(output).metadata();
-
   return {
     buffer: output,
     info: {

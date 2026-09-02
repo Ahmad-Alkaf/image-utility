@@ -29,6 +29,10 @@ interface UseRemoveBgReturn {
   reset: () => void;
 }
 
+/**
+ * Runs @imgly/background-removal in a web worker and composes the chosen
+ * background on a canvas. Everything stays in the browser.
+ */
 export function useRemoveBg(): UseRemoveBgReturn {
   const [status, setStatus] = useState<Status>("idle");
   const [progress, setProgress] = useState(0);
@@ -66,9 +70,8 @@ export function useRemoveBg(): UseRemoveBgReturn {
       setResult(null);
       setStatus("loading-model");
       setProgress(0);
-      setProgressLabel("Loading AI model...");
+      setProgressLabel("Loading the AI model...");
 
-      // Terminate any previous worker
       workerRef.current?.terminate();
 
       const worker = new Worker(
@@ -81,26 +84,20 @@ export function useRemoveBg(): UseRemoveBgReturn {
           const msg = e.data;
 
           if (msg.type === "progress") {
-            // Worker sends a single 0-100 progress that never goes backwards:
-            //   0-60%  = downloading model
-            //   60-100% = processing image
+            // 0-60% = downloading the model, 60-100% = processing the image
             setProgress(msg.progress);
             if (msg.phase === "downloading") {
               setStatus("loading-model");
-              setProgressLabel("Downloading AI model...");
+              setProgressLabel("Downloading the AI model (first time only)...");
             } else {
               setStatus("processing");
-              setProgressLabel("Removing background...");
+              setProgressLabel("Removing the background...");
             }
           } else if (msg.type === "done") {
             try {
-              setProgressLabel("Applying background...");
+              setProgressLabel("Applying the new background...");
 
-              const outputBlob = await applyBackground(
-                file,
-                msg.blob,
-                options
-              );
+              const outputBlob = await applyBackground(file, msg.blob, options);
 
               const url = URL.createObjectURL(outputBlob);
               resultUrlRef.current = url;
@@ -112,14 +109,14 @@ export function useRemoveBg(): UseRemoveBgReturn {
               setProgressLabel("");
             } catch (err) {
               setError(
-                err instanceof Error ? err.message : "Post-processing failed"
+                err instanceof Error ? err.message : "The new background could not be applied."
               );
               setStatus("failed");
             }
             worker.terminate();
             resolve();
           } else if (msg.type === "error") {
-            setError(msg.message);
+            setError(friendlyError(msg.message));
             setStatus("failed");
             worker.terminate();
             resolve();
@@ -127,7 +124,7 @@ export function useRemoveBg(): UseRemoveBgReturn {
         };
 
         worker.onerror = (err) => {
-          setError(err.message || "Worker error");
+          setError(friendlyError(err.message));
           setStatus("failed");
           worker.terminate();
           resolve();
@@ -152,14 +149,22 @@ export function useRemoveBg(): UseRemoveBgReturn {
   return { status, progress, progressLabel, result, error, process, reset };
 }
 
-function getImageDimensions(
-  src: string
-): Promise<{ width: number; height: number }> {
+function friendlyError(message: string | undefined): string {
+  if (!message) return "Background removal failed. Please try again.";
+  if (/fetch|network|Failed to load|NetworkError/i.test(message)) {
+    return "The AI model could not be downloaded. Check your connection and try again.";
+  }
+  if (/memory|allocation/i.test(message)) {
+    return "The browser ran out of memory. Try a smaller image.";
+  }
+  return message;
+}
+
+function getImageDimensions(src: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () =>
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => reject(new Error("Failed to read image dimensions"));
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => reject(new Error("The result image could not be read."));
     img.src = src;
   });
 }
@@ -189,15 +194,10 @@ async function applyBackground(
     ctx.drawImage(fgBitmap, 0, 0);
   } else if (options.background === "blur") {
     const originalBitmap = await createImageBitmap(originalFile);
-    ctx.filter = `blur(${options.blurAmount || 20}px)`;
-    const extend = (options.blurAmount || 20) * 2;
-    ctx.drawImage(
-      originalBitmap,
-      -extend,
-      -extend,
-      width + extend * 2,
-      height + extend * 2
-    );
+    const blur = options.blurAmount || 20;
+    ctx.filter = `blur(${blur}px)`;
+    const extend = blur * 2;
+    ctx.drawImage(originalBitmap, -extend, -extend, width + extend * 2, height + extend * 2);
     ctx.filter = "none";
     ctx.drawImage(fgBitmap, 0, 0);
     originalBitmap.close();

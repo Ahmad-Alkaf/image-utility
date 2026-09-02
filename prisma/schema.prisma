@@ -35,6 +35,9 @@ model User {
   processingJobs ProcessingJob[]
 }
 
+/// One processing run. The row stays for the dashboard history and the
+/// public counters; the stored files are deleted after FILE_RETENTION_HOURS
+/// by the cleanup job, which then sets filesDeletedAt.
 model ProcessingJob {
   id               String           @id @default(cuid())
   userId           String?
@@ -47,7 +50,7 @@ model ProcessingJob {
   outputFileName   String?
   outputFileSize   Int?
   outputMimeType   String?
-  inputStorageKey  String
+  inputStorageKey  String?
   outputStorageKey String?
   downloadToken    String           @default(uuid())
   options          Json?
@@ -55,7 +58,9 @@ model ProcessingJob {
   processingTimeMs Int?
   createdAt        DateTime         @default(now())
   completedAt      DateTime?
+  filesDeletedAt   DateTime?
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([status])
+  @@index([filesDeletedAt, createdAt])
 }

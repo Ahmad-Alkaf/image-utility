@@ -21,20 +21,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { UPLOAD_LIMITS, TOOL_ACCEPTED_TYPES } from "@/lib/constants";
+import { formatFileSize } from "@/lib/format";
 
 const FORMAT_OPTIONS = [
-  { value: "original", label: "Keep Original" },
+  { value: "original", label: "Keep the original format" },
   { value: "jpeg", label: "JPEG" },
   { value: "webp", label: "WebP" },
   { value: "avif", label: "AVIF" },
   { value: "png", label: "PNG" },
 ];
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function CompressForm() {
   const { isSignedIn } = useUser();
@@ -45,14 +40,12 @@ export function CompressForm() {
   const [format, setFormat] = useState("original");
 
   const { files, previews, setFiles, removeFile, clearFiles } = useImageUpload();
-  const {
-    processImage,
-    status,
-    progress,
-    result,
-    error,
-    reset: resetProcessing,
-  } = useProcessing();
+  const { processImage, status, progress, result, error, reset: resetProcessing } =
+    useProcessing();
+
+  const isBusy = status === "processing" || status === "uploading";
+  const isPngOutput =
+    format === "png" || (format === "original" && files[0]?.type === "image/png");
 
   const handleSubmit = async () => {
     if (files.length === 0) return;
@@ -74,16 +67,17 @@ export function CompressForm() {
   const handleReset = () => {
     clearFiles();
     resetProcessing();
+    setMode("auto");
+    setQuality(75);
+    setFormat("original");
   };
 
   const compressedSize = result?.outputMeta?.fileSize ?? 0;
-  const originalSizeFromMeta =
-    (result?.outputMeta as Record<string, unknown>)?.originalSize as
-      | number
-      | undefined;
+  const originalSize =
+    (result?.outputMeta as Record<string, unknown> | undefined)?.originalSize as number | undefined;
   const savedPercentage =
-    originalSizeFromMeta && compressedSize
-      ? Math.round((1 - compressedSize / originalSizeFromMeta) * 100)
+    originalSize && compressedSize
+      ? Math.round((1 - compressedSize / originalSize) * 100)
       : 0;
 
   return (
@@ -101,41 +95,50 @@ export function CompressForm() {
       {files.length > 0 && (
         <ImagePreview
           originalSrc={previews[0]}
-          originalMeta={{
-            fileName: files[0].name,
-            size: files[0].size,
-          }}
+          processedSrc={result ? `${result.downloadUrl}&inline=true` : undefined}
+          originalMeta={{ fileName: files[0].name, size: files[0].size }}
+          processedMeta={
+            result
+              ? {
+                  fileName: result.outputMeta.fileName,
+                  size: result.outputMeta.fileSize,
+                  width: result.outputMeta.width,
+                  height: result.outputMeta.height,
+                }
+              : undefined
+          }
         />
       )}
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label>Compression Mode</Label>
-          <Tabs
-            value={mode}
-            onValueChange={(v) => setMode(v as "auto" | "manual")}
-          >
+          <Label>Mode</Label>
+          <Tabs value={mode} onValueChange={(v) => setMode(v as "auto" | "manual")}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="auto">Auto</TabsTrigger>
+              <TabsTrigger value="auto">Automatic</TabsTrigger>
               <TabsTrigger value="manual">Manual</TabsTrigger>
             </TabsList>
           </Tabs>
           <p className="text-xs text-muted-foreground">
             {mode === "auto"
-              ? "Automatically finds the best balance between quality and file size."
-              : "Manually set the compression quality level."}
+              ? "Picks a quality that shrinks the file a lot with little visible change. If nothing helps, you get the original back."
+              : "Set the quality yourself. Lower values give smaller files."}
           </p>
         </div>
 
         {mode === "manual" && (
           <div className="space-y-2">
-            <Label>Quality: {quality}</Label>
+            <div className="flex items-center justify-between">
+              <Label>Quality</Label>
+              <span className="text-sm text-muted-foreground">{quality}</span>
+            </div>
             <Slider
               value={[quality]}
               onValueChange={(v) => setQuality(Array.isArray(v) ? v[0] : v)}
               min={1}
               max={100}
               step={1}
+              aria-label="Quality"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Smaller file</span>
@@ -145,10 +148,10 @@ export function CompressForm() {
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="format-select">Output Format</Label>
-          <Select value={format} onValueChange={(v) => v && setFormat(v)}>
+          <Label htmlFor="format-select">Output format</Label>
+          <Select value={format} onValueChange={(v) => v && setFormat(v)} items={FORMAT_OPTIONS}>
             <SelectTrigger id="format-select">
-              <SelectValue placeholder="Select format" />
+              <SelectValue placeholder="Choose a format" />
             </SelectTrigger>
             <SelectContent>
               {FORMAT_OPTIONS.map((opt) => (
@@ -158,15 +161,17 @@ export function CompressForm() {
               ))}
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">
+            {isPngOutput
+              ? "PNG output uses a 256-color palette below quality 100. Photos usually get much smaller as WebP or JPEG."
+              : "Switching photos to WebP or AVIF usually gives the biggest savings."}
+          </p>
         </div>
       </div>
 
       <div className="flex gap-3">
-        <Button
-          onClick={handleSubmit}
-          disabled={files.length === 0 || status === "processing" || status === "uploading"}
-        >
-          {status === "processing" || status === "uploading" ? "Compressing..." : "Compress"}
+        <Button onClick={handleSubmit} disabled={files.length === 0 || isBusy}>
+          {isBusy ? "Compressing..." : "Compress"}
         </Button>
         <Button variant="outline" onClick={handleReset}>
           Reset
@@ -180,31 +185,26 @@ export function CompressForm() {
         onRetry={handleSubmit}
       />
 
-      {result && originalSizeFromMeta && compressedSize > 0 && (
-        <div className="rounded-lg border p-4 space-y-3">
+      {result && originalSize && compressedSize > 0 && (
+        <div className="space-y-3 rounded-lg border p-4">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Compression Results</span>
+            <span className="text-sm font-medium">Result</span>
             {savedPercentage > 0 ? (
-              <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/20 border-green-500/20">
-                Saved {savedPercentage}%
+              <Badge className="border-green-500/20 bg-green-500/15 text-green-600 hover:bg-green-500/20">
+                {savedPercentage}% smaller
               </Badge>
             ) : (
-              <Badge variant="secondary">No reduction</Badge>
+              <Badge variant="secondary">Already as small as it gets</Badge>
             )}
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{formatFileSize(originalSizeFromMeta)}</span>
-            <span>&rarr;</span>
-            <span>{formatFileSize(compressedSize)}</span>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            {formatFileSize(originalSize)} to {formatFileSize(compressedSize)}
+          </p>
         </div>
       )}
 
       {result && (
-        <DownloadButton
-          downloadUrl={result.downloadUrl}
-          fileName={`compressed.${format !== "original" ? format : "image"}`}
-        />
+        <DownloadButton downloadUrl={result.downloadUrl} fileName={result.outputMeta.fileName} />
       )}
     </div>
   );

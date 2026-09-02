@@ -3,9 +3,12 @@ import { getOrCreateUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { FILE_RETENTION_HOURS } from "@/lib/constants";
+import { formatFileSize } from "@/lib/format";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: "History",
+  robots: { index: false, follow: false },
 };
 
 export default async function DashboardPage() {
@@ -19,7 +22,7 @@ export default async function DashboardPage() {
   const jobs = await db.processingJob.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
-    take: 50,
+    take: 100,
     select: {
       id: true,
       type: true,
@@ -32,6 +35,7 @@ export default async function DashboardPage() {
       completedAt: true,
       processingTimeMs: true,
       downloadToken: true,
+      filesDeletedAt: true,
     },
   });
 
@@ -47,32 +51,30 @@ export default async function DashboardPage() {
   };
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="space-y-8 p-6">
       <div>
-        <h1 className="text-2xl font-heading font-bold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          View your processing history and download results.
+        <h1 className="font-heading text-2xl font-bold">History</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Your last {jobs.length === 100 ? "100 " : ""}jobs. Results can be
+          downloaded for {FILE_RETENTION_HOURS} hours, then the files are deleted.
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border bg-card p-6">
-          <p className="text-sm text-muted-foreground">Total Jobs</p>
-          <p className="text-3xl font-bold mt-1">{stats.total}</p>
+          <p className="text-sm text-muted-foreground">Jobs</p>
+          <p className="mt-1 text-3xl font-bold">{stats.total}</p>
         </div>
         <div className="rounded-xl border bg-card p-6">
           <p className="text-sm text-muted-foreground">Completed</p>
-          <p className="text-3xl font-bold mt-1 text-green-500">
+          <p className="mt-1 text-3xl font-bold text-green-600 dark:text-green-500">
             {stats.completed}
           </p>
         </div>
         <div className="rounded-xl border bg-card p-6">
-          <p className="text-sm text-muted-foreground">Space Saved</p>
-          <p className="text-3xl font-bold mt-1 text-primary">
-            {stats.totalSaved > 0
-              ? `${(stats.totalSaved / (1024 * 1024)).toFixed(1)} MB`
-              : "0 MB"}
+          <p className="text-sm text-muted-foreground">Space saved</p>
+          <p className="mt-1 text-3xl font-bold text-primary">
+            {formatFileSize(stats.totalSaved)}
           </p>
         </div>
       </div>

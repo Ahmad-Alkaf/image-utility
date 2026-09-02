@@ -18,8 +18,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Camera, MapPin, FileImage, ShieldOff, Loader2 } from "lucide-react";
+import { Camera, MapPin, FileImage, ShieldOff, Loader2, ExternalLink, CheckCircle2 } from "lucide-react";
 import { UPLOAD_LIMITS, TOOL_ACCEPTED_TYPES } from "@/lib/constants";
+import { formatFileSize } from "@/lib/format";
 
 interface MetadataResponse {
   format: string;
@@ -31,52 +32,81 @@ interface MetadataResponse {
   depth: string;
   density?: number;
   hasAlpha: boolean;
+  hasProfile: boolean;
+  orientation?: number;
   exif: Record<string, unknown>;
   gps?: { latitude: number; longitude: number };
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatExifValue(value: unknown): string {
-  if (value === null || value === undefined) return "N/A";
+function formatExifValue(key: string, value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (key === "ExposureTime" && typeof value === "number" && value > 0 && value < 1) {
+    return `1/${Math.round(1 / value)} s`;
+  }
+  if (key === "FNumber" && typeof value === "number") return `f/${value}`;
+  if ((key === "FocalLength" || key === "FocalLengthIn35mmFilm") && typeof value === "number") {
+    return `${value} mm`;
+  }
   if (Array.isArray(value)) return value.join(", ");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
 
 const EXIF_LABELS: Record<string, string> = {
-  Make: "Camera Make",
-  Model: "Camera Model",
-  DateTime: "Date/Time",
-  DateTimeOriginal: "Date Taken",
-  ExposureTime: "Exposure Time",
-  FNumber: "F-Number",
+  Make: "Camera make",
+  Model: "Camera model",
+  DateTime: "Modified",
+  DateTimeOriginal: "Taken",
+  DateTimeDigitized: "Digitized",
+  ExposureTime: "Exposure time",
+  FNumber: "Aperture",
   ISOSpeedRatings: "ISO",
   ISO: "ISO",
-  FocalLength: "Focal Length",
-  FocalLengthIn35mmFilm: "Focal Length (35mm)",
-  ExposureProgram: "Exposure Program",
-  MeteringMode: "Metering Mode",
+  FocalLength: "Focal length",
+  FocalLengthIn35mmFilm: "Focal length (35 mm)",
+  ExposureProgram: "Exposure program",
+  ExposureBiasValue: "Exposure bias",
+  MeteringMode: "Metering mode",
   Flash: "Flash",
-  WhiteBalance: "White Balance",
+  WhiteBalance: "White balance",
   Software: "Software",
   Orientation: "Orientation",
-  XResolution: "X Resolution",
-  YResolution: "Y Resolution",
-  ResolutionUnit: "Resolution Unit",
-  ColorSpace: "Color Space",
-  ExifImageWidth: "EXIF Width",
-  ExifImageHeight: "EXIF Height",
-  LensModel: "Lens Model",
-  LensMake: "Lens Make",
+  XResolution: "X resolution",
+  YResolution: "Y resolution",
+  ResolutionUnit: "Resolution unit",
+  ColorSpace: "Color space",
+  ExifImageWidth: "EXIF width",
+  ExifImageHeight: "EXIF height",
+  PixelXDimension: "Pixel width",
+  PixelYDimension: "Pixel height",
+  LensModel: "Lens model",
+  LensMake: "Lens make",
   Artist: "Artist",
   Copyright: "Copyright",
   ImageDescription: "Description",
+  OffsetTime: "Time zone",
+  OffsetTimeOriginal: "Time zone (taken)",
 };
+
+/** Keys shown first, in this order. Everything else follows alphabetically. */
+const PRIORITY_KEYS = [
+  "Make",
+  "Model",
+  "LensModel",
+  "DateTimeOriginal",
+  "DateTime",
+  "ExposureTime",
+  "FNumber",
+  "ISOSpeedRatings",
+  "ISO",
+  "FocalLength",
+  "FocalLengthIn35mmFilm",
+  "Flash",
+  "WhiteBalance",
+  "Software",
+  "Artist",
+  "Copyright",
+];
 
 export function MetadataViewer() {
   const { isSignedIn } = useUser();
@@ -110,20 +140,17 @@ export function MetadataViewer() {
       formData.append("files", selectedFiles[0]);
       formData.append("options", JSON.stringify({ action: "read" }));
 
-      const response = await fetch("/api/process/metadata", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch("/api/process/metadata", { method: "POST", body: formData });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to read metadata (${response.status})`);
+        throw new Error(errorData.error || `The metadata could not be read (${response.status}).`);
       }
 
       const data = await response.json();
       setMetadata(data.metadata);
     } catch (err) {
-      setReadError(err instanceof Error ? err.message : "Failed to read metadata");
+      setReadError(err instanceof Error ? err.message : "The metadata could not be read.");
     } finally {
       setReadingMetadata(false);
     }
@@ -131,11 +158,9 @@ export function MetadataViewer() {
 
   const handleStrip = async () => {
     if (files.length === 0) return;
-
     const formData = new FormData();
     formData.append("files", files[0]);
     formData.append("options", JSON.stringify({ action: "strip" }));
-
     await processImage("/api/process/metadata", formData);
   };
 
@@ -147,10 +172,20 @@ export function MetadataViewer() {
   };
 
   const exifEntries = metadata?.exif
-    ? Object.entries(metadata.exif).filter(
-        ([, value]) => value !== null && value !== undefined
-      )
+    ? Object.entries(metadata.exif)
+        .filter(([, value]) => value !== null && value !== undefined && value !== "")
+        .sort(([a], [b]) => {
+          const ia = PRIORITY_KEYS.indexOf(a);
+          const ib = PRIORITY_KEYS.indexOf(b);
+          if (ia !== -1 || ib !== -1) {
+            return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+          }
+          return a.localeCompare(b);
+        })
     : [];
+
+  const isStripping = stripStatus === "processing" || stripStatus === "uploading";
+  const hasSensitiveData = !!metadata && (exifEntries.length > 0 || !!metadata.gps);
 
   return (
     <div className="space-y-6">
@@ -170,9 +205,9 @@ export function MetadataViewer() {
       />
 
       {readingMetadata && (
-        <div className="flex items-center gap-3 rounded-lg border p-4">
+        <div className="flex items-center gap-3 rounded-lg border p-4" role="status">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <span className="text-sm font-medium">Reading metadata...</span>
+          <span className="text-sm font-medium">Reading the metadata...</span>
         </div>
       )}
 
@@ -184,12 +219,37 @@ export function MetadataViewer() {
 
       {metadata && (
         <div className="space-y-6">
-          {/* Basic Image Info */}
+          {/* Summary */}
+          <div
+            className={
+              hasSensitiveData
+                ? "flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+                : "flex items-start gap-2 rounded-lg border border-green-500/40 bg-green-500/10 p-3 text-sm"
+            }
+          >
+            {hasSensitiveData ? (
+              <>
+                <Camera className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <p>
+                  This image carries {exifEntries.length} metadata field{exifEntries.length === 1 ? "" : "s"}
+                  {metadata.gps ? " and a GPS location" : ""}. Remove them before you share the file if you
+                  want to keep that private.
+                </p>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                <p>No EXIF metadata or GPS location was found in this image.</p>
+              </>
+            )}
+          </div>
+
+          {/* Basic image info */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <FileImage className="h-5 w-5" />
-                Image Information
+                Image information
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -212,11 +272,11 @@ export function MetadataViewer() {
                     <TableCell>{metadata.width} x {metadata.height} px</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-medium">File Size</TableCell>
+                    <TableCell className="font-medium">File size</TableCell>
                     <TableCell>{formatFileSize(metadata.size)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-medium">Color Space</TableCell>
+                    <TableCell className="font-medium">Color space</TableCell>
                     <TableCell>{metadata.space}</TableCell>
                   </TableRow>
                   <TableRow>
@@ -224,31 +284,41 @@ export function MetadataViewer() {
                     <TableCell>{metadata.channels}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-medium">Bit Depth</TableCell>
+                    <TableCell className="font-medium">Bit depth</TableCell>
                     <TableCell>{metadata.depth}</TableCell>
                   </TableRow>
-                  {metadata.density && (
+                  {metadata.density ? (
                     <TableRow>
-                      <TableCell className="font-medium">DPI</TableCell>
-                      <TableCell>{metadata.density}</TableCell>
+                      <TableCell className="font-medium">Resolution</TableCell>
+                      <TableCell>{metadata.density} DPI</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
+                  {metadata.orientation && metadata.orientation !== 1 ? (
+                    <TableRow>
+                      <TableCell className="font-medium">Orientation tag</TableCell>
+                      <TableCell>{metadata.orientation}</TableCell>
+                    </TableRow>
+                  ) : null}
                   <TableRow>
-                    <TableCell className="font-medium">Alpha Channel</TableCell>
+                    <TableCell className="font-medium">Transparency</TableCell>
                     <TableCell>{metadata.hasAlpha ? "Yes" : "No"}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Embedded color profile</TableCell>
+                    <TableCell>{metadata.hasProfile ? "Yes" : "No"}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
 
-          {/* EXIF Data */}
+          {/* EXIF data */}
           {exifEntries.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Camera className="h-5 w-5" />
-                  EXIF Data
+                  EXIF data
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -262,12 +332,8 @@ export function MetadataViewer() {
                   <TableBody>
                     {exifEntries.map(([key, value]) => (
                       <TableRow key={key}>
-                        <TableCell className="font-medium">
-                          {EXIF_LABELS[key] || key}
-                        </TableCell>
-                        <TableCell className="break-all">
-                          {formatExifValue(value)}
-                        </TableCell>
+                        <TableCell className="font-medium">{EXIF_LABELS[key] || key}</TableCell>
+                        <TableCell className="break-all">{formatExifValue(key, value)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -276,16 +342,16 @@ export function MetadataViewer() {
             </Card>
           )}
 
-          {/* GPS Data */}
+          {/* GPS data */}
           {metadata.gps && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <MapPin className="h-5 w-5" />
-                  GPS Location
+                  GPS location
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -304,31 +370,36 @@ export function MetadataViewer() {
                     </TableRow>
                   </TableBody>
                 </Table>
+                <a
+                  href={`https://www.openstreetmap.org/?mlat=${metadata.gps.latitude}&mlon=${metadata.gps.longitude}#map=15/${metadata.gps.latitude}/${metadata.gps.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-2 hover:underline"
+                >
+                  Show on a map
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
               </CardContent>
             </Card>
           )}
 
-          {/* Strip Metadata Section */}
+          {/* Strip metadata */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <ShieldOff className="h-5 w-5" />
-                Strip Metadata
+                Remove metadata
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Remove all EXIF data, GPS coordinates, and other metadata from your image for privacy.
+                Makes a copy of the image without EXIF data, GPS coordinates, camera details, or
+                other embedded metadata. The pixels are not changed, and the orientation is kept.
               </p>
 
               <div className="flex gap-3">
-                <Button
-                  onClick={handleStrip}
-                  disabled={stripStatus === "processing" || stripStatus === "uploading"}
-                >
-                  {stripStatus === "processing" || stripStatus === "uploading"
-                    ? "Stripping..."
-                    : "Strip Metadata"}
+                <Button onClick={handleStrip} disabled={isStripping}>
+                  {isStripping ? "Removing..." : "Remove all metadata"}
                 </Button>
                 <Button variant="outline" onClick={handleReset}>
                   Reset
@@ -339,12 +410,14 @@ export function MetadataViewer() {
                 status={stripStatus}
                 progress={stripProgress}
                 errorMessage={stripError ?? undefined}
+                onRetry={handleStrip}
               />
 
               {stripResult && (
                 <DownloadButton
                   downloadUrl={stripResult.downloadUrl}
-                  fileName={files[0]?.name.replace(/\.([^.]+)$/, "-stripped.$1") || "stripped-image"}
+                  fileName={stripResult.outputMeta.fileName}
+                  label="Download clean copy"
                 />
               )}
             </CardContent>

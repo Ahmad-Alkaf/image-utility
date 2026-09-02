@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { outputFormatFor } from "@/lib/processing/format";
 
 interface FilterOptions {
   brightness: number;    // -100 to 100
@@ -11,14 +12,22 @@ interface FilterOptions {
   preset?: "grayscale" | "sepia" | "invert" | "vintage" | "cool" | "warm";
 }
 
-export async function applyFilters(inputBuffer: Buffer, options: FilterOptions): Promise<{ buffer: Buffer; info: { format: string; width: number; height: number; size: number } }> {
+export interface FilterResult {
+  buffer: Buffer;
+  info: { format: string; width: number; height: number; size: number };
+}
+
+export async function applyFilters(
+  inputBuffer: Buffer,
+  options: FilterOptions
+): Promise<FilterResult> {
   const metadata = await sharp(inputBuffer).metadata();
-  let pipeline = sharp(inputBuffer);
+  let pipeline = sharp(inputBuffer).rotate();
 
   // Compute base modulate values from slider adjustments
   let baseBrightness = 1 + options.brightness / 100;
   let baseSaturation = 1 + options.saturation / 100;
-  let baseHue = options.hue;
+  const baseHue = options.hue;
 
   // Apply preset first if specified
   if (options.preset) {
@@ -30,7 +39,7 @@ export async function applyFilters(inputBuffer: Buffer, options: FilterOptions):
         pipeline = pipeline.tint({ r: 112, g: 66, b: 20 });
         break;
       case "invert":
-        pipeline = pipeline.negate();
+        pipeline = pipeline.negate({ alpha: false });
         break;
       case "vintage":
         baseBrightness *= 1.1;
@@ -55,21 +64,26 @@ export async function applyFilters(inputBuffer: Buffer, options: FilterOptions):
     });
   }
 
-  // Contrast via linear adjustment
+  // Contrast via linear adjustment around mid grey
   if (options.contrast !== 0) {
     const a = 1 + options.contrast / 100;
     const b = 128 * (1 - a);
     pipeline = pipeline.linear(a, b);
   }
 
-  // Gamma
+  // Gamma. sharp only accepts 1.0 to 3.0, so values below 1 are
+  // approximated with a brightness lift instead.
   if (options.gamma !== 1) {
-    pipeline = pipeline.gamma(options.gamma);
+    if (options.gamma >= 1) {
+      pipeline = pipeline.gamma(Math.min(3, options.gamma));
+    } else {
+      pipeline = pipeline.modulate({ brightness: 1 + (1 - options.gamma) });
+    }
   }
 
   // Sharpen
   if (options.sharpness > 0) {
-    pipeline = pipeline.sharpen({ sigma: options.sharpness / 10 });
+    pipeline = pipeline.sharpen({ sigma: Math.max(0.3, options.sharpness / 10) });
   }
 
   // Blur
@@ -78,8 +92,8 @@ export async function applyFilters(inputBuffer: Buffer, options: FilterOptions):
     pipeline = pipeline.blur(sigma);
   }
 
-  const format = metadata.format || "png";
-  const output = await pipeline.toFormat(format as keyof sharp.FormatEnum).toBuffer();
+  const format = outputFormatFor(metadata.format);
+  const output = await pipeline.toFormat(format).toBuffer();
   const info = await sharp(output).metadata();
 
   return {

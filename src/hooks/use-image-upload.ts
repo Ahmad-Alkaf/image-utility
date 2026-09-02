@@ -1,41 +1,48 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 interface UseImageUploadOptions {
   maxFiles?: number;
-  onUploadComplete?: (files: File[]) => void;
 }
 
 interface UseImageUploadReturn {
   files: File[];
+  /** Object URLs for the selected files, same order as `files`. */
   previews: string[];
-  uploading: boolean;
-  uploadProgress: number;
   setFiles: (files: File[]) => void;
   addFiles: (newFiles: File[]) => void;
   removeFile: (index: number) => void;
   clearFiles: () => void;
-  uploadFiles: (
-    endpoint: string,
-    formDataExtras?: Record<string, string>
-  ) => Promise<Response>;
 }
 
+/**
+ * Keeps the selected files and their preview URLs in sync, and revokes
+ * object URLs that are no longer needed.
+ */
 export function useImageUpload(
   options: UseImageUploadOptions = {}
 ): UseImageUploadReturn {
-  const { maxFiles = 1, onUploadComplete } = options;
+  const { maxFiles = 1 } = options;
   const [files, setFilesState] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const previewsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    previewsRef.current = previews;
+  }, [previews]);
+
+  // Revoke every preview when the component using the hook unmounts.
+  useEffect(() => {
+    return () => {
+      previewsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   const setFiles = useCallback(
     (newFiles: File[]) => {
       const limited = newFiles.slice(0, maxFiles);
       setFilesState(limited);
-      // Generate preview URLs
       setPreviews((old) => {
         old.forEach((url) => URL.revokeObjectURL(url));
         return limited.map((f) => URL.createObjectURL(f));
@@ -47,39 +54,23 @@ export function useImageUpload(
   const addFiles = useCallback(
     (newFiles: File[]) => {
       const newFileUrls = newFiles.map((f) => URL.createObjectURL(f));
-      setFilesState((prev) => {
-        const combined = [...prev, ...newFiles].slice(0, maxFiles);
-        return combined;
-      });
+      setFilesState((prev) => [...prev, ...newFiles].slice(0, maxFiles));
       setPreviews((oldPreviews) => {
-        const combined = [...oldPreviews, ...newFileUrls].slice(0, maxFiles);
-        // Revoke any previews that got sliced off
-        const discarded = [...oldPreviews, ...newFileUrls].slice(maxFiles);
-        discarded.forEach((url) => URL.revokeObjectURL(url));
-        return combined;
+        const all = [...oldPreviews, ...newFileUrls];
+        all.slice(maxFiles).forEach((url) => URL.revokeObjectURL(url));
+        return all.slice(0, maxFiles);
       });
     },
     [maxFiles]
   );
 
-  const removeFile = useCallback(
-    (index: number) => {
-      setFilesState((prev) => {
-        const next = [...prev];
-        next.splice(index, 1);
-        return next;
-      });
-      setPreviews((prev) => {
-        const next = [...prev];
-        if (index >= 0 && index < prev.length) {
-          URL.revokeObjectURL(next[index]);
-          next.splice(index, 1);
-        }
-        return next;
-      });
-    },
-    []
-  );
+  const removeFile = useCallback((index: number) => {
+    setFilesState((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => {
+      if (index >= 0 && index < prev.length) URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
 
   const clearFiles = useCallback(() => {
     setPreviews((old) => {
@@ -87,59 +78,7 @@ export function useImageUpload(
       return [];
     });
     setFilesState([]);
-    setUploadProgress(0);
   }, []);
 
-  const uploadFiles = useCallback(
-    async (
-      endpoint: string,
-      formDataExtras?: Record<string, string>
-    ): Promise<Response> => {
-      setUploading(true);
-      setUploadProgress(0);
-
-      const formData = new FormData();
-      files.forEach((file) => formData.append("files", file));
-      if (formDataExtras) {
-        Object.entries(formDataExtras).forEach(([key, value]) =>
-          formData.append(key, value)
-        );
-      }
-
-      let progressInterval: ReturnType<typeof setInterval> | undefined;
-      try {
-        // Simulate progress since fetch doesn't support upload progress
-        progressInterval = setInterval(() => {
-          setUploadProgress((prev) => Math.min(prev + 10, 90));
-        }, 200);
-
-        const response = await fetch(endpoint, {
-          method: "POST",
-          body: formData,
-        });
-
-        clearInterval(progressInterval);
-        setUploadProgress(100);
-        onUploadComplete?.(files);
-
-        return response;
-      } finally {
-        clearInterval(progressInterval);
-        setUploading(false);
-      }
-    },
-    [files, onUploadComplete]
-  );
-
-  return {
-    files,
-    previews,
-    uploading,
-    uploadProgress,
-    setFiles,
-    addFiles,
-    removeFile,
-    clearFiles,
-    uploadFiles,
-  };
+  return { files, previews, setFiles, addFiles, removeFile, clearFiles };
 }

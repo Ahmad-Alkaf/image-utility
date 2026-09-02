@@ -1,4 +1,6 @@
 import sharp from "sharp";
+import { outputFormatFor } from "@/lib/processing/format";
+import { ProcessingError } from "@/lib/processing/errors";
 
 interface WatermarkOptions {
   type: "text" | "image";
@@ -7,131 +9,149 @@ interface WatermarkOptions {
   fontColor?: string;
   opacity: number;
   rotation: number;
-  position: string; // "top-left" | "top-center" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom-center" | "bottom-right" | "tile"
+  position: string; // "top-left" | ... | "bottom-right" | "tile"
   watermarkImageBuffer?: Buffer;
 }
 
-export async function addWatermark(inputBuffer: Buffer, options: WatermarkOptions): Promise<{ buffer: Buffer; info: { format: string; width: number; height: number; size: number } }> {
-  const metadata = await sharp(inputBuffer).metadata();
-  const imgWidth = metadata.width || 800;
-  const imgHeight = metadata.height || 600;
+export interface WatermarkResult {
+  buffer: Buffer;
+  info: { format: string; width: number; height: number; size: number };
+}
 
-  let overlayBuffer: Buffer;
+// DejaVu Sans is installed in the Docker image (ttf-dejavu). Arial and
+// Helvetica cover Windows and macOS dev machines.
+const FONT_STACK = "'DejaVu Sans', Arial, Helvetica, sans-serif";
 
-  if (options.type === "text" && options.text) {
-    const fontSize = options.fontSize || 48;
-    const fontColor = options.fontColor || "#ffffff";
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
-    // Create SVG text overlay
-    const escapedText = options.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-    const svgText = `<svg width="${imgWidth}" height="${imgHeight}">
-      <style>
-        .watermark {
-          fill: ${fontColor};
-          opacity: ${options.opacity};
-          font-size: ${fontSize}px;
-          font-family: Arial, sans-serif;
-          font-weight: bold;
-        }
-      </style>
-      <text class="watermark"
-        x="${getTextX(options.position, imgWidth)}"
-        y="${getTextY(options.position, imgHeight, fontSize)}"
-        text-anchor="${getTextAnchor(options.position)}"
-        ${options.rotation ? `transform="rotate(${options.rotation}, ${imgWidth/2}, ${imgHeight/2})"` : ""}
-      >${escapedText}</text>
-    </svg>`;
+/** SVG canvas of the given size with one line of text at (x, y). */
+function textSvg(opts: {
+  width: number;
+  height: number;
+  text: string;
+  fontSize: number;
+  fontColor: string;
+  opacity: number;
+  rotation: number;
+  x: number;
+  y: number;
+  anchor: string;
+}): Buffer {
+  const cx = opts.width / 2;
+  const cy = opts.height / 2;
+  const transform = opts.rotation ? ` transform="rotate(${opts.rotation}, ${cx}, ${cy})"` : "";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${opts.width}" height="${opts.height}">
+  <text x="${opts.x}" y="${opts.y}" text-anchor="${opts.anchor}"${transform}
+    fill="${opts.fontColor}" fill-opacity="${opts.opacity}"
+    font-family="${FONT_STACK}" font-size="${opts.fontSize}" font-weight="bold">${escapeXml(opts.text)}</text>
+</svg>`;
+  return Buffer.from(svg);
+}
 
-    overlayBuffer = Buffer.from(svgText);
-  } else if (options.type === "image" && options.watermarkImageBuffer) {
-    // Resize watermark image and adjust opacity
-    const maxWatermarkWidth = Math.round(imgWidth * 0.3);
-    const maxWatermarkHeight = Math.round(imgHeight * 0.3);
-
-    overlayBuffer = await sharp(options.watermarkImageBuffer)
-      .resize(maxWatermarkWidth, maxWatermarkHeight, { fit: "inside" })
-      .ensureAlpha()
-      .composite([{
-        input: Buffer.from([0, 0, 0, Math.round(options.opacity * 255)]),
+/** Resizes the watermark image to fit in a box and applies the opacity. */
+async function imageOverlay(source: Buffer, maxWidth: number, maxHeight: number, opacity: number): Promise<Buffer> {
+  return sharp(source)
+    .rotate()
+    .resize(Math.max(1, maxWidth), Math.max(1, maxHeight), { fit: "inside", withoutEnlargement: true })
+    .ensureAlpha()
+    .composite([
+      {
+        input: Buffer.from([0, 0, 0, Math.round(opacity * 255)]),
         raw: { width: 1, height: 1, channels: 4 },
         tile: true,
         blend: "dest-in",
-      }])
-      .toBuffer();
-  } else {
-    // No watermark to apply
-    const output = await sharp(inputBuffer).toBuffer();
-    return { buffer: output, info: { format: metadata.format || "png", width: imgWidth, height: imgHeight, size: output.length } };
+      },
+    ])
+    .png()
+    .toBuffer();
+}
+
+export async function addWatermark(
+  inputBuffer: Buffer,
+  options: WatermarkOptions
+): Promise<WatermarkResult> {
+  const metadata = await sharp(inputBuffer).metadata();
+  const orientedSwap = (metadata.orientation ?? 1) >= 5;
+  const imgWidth = (orientedSwap ? metadata.height : metadata.width) || 800;
+  const imgHeight = (orientedSwap ? metadata.width : metadata.height) || 600;
+
+  const isText = options.type === "text";
+  if (isText && !options.text?.trim()) {
+    throw new ProcessingError("Enter the watermark text.");
+  }
+  if (!isText && !options.watermarkImageBuffer) {
+    throw new ProcessingError("Upload a watermark image.");
   }
 
-  const gravity = getGravity(options.position);
+  const fontSize = options.fontSize || 48;
+  const fontColor = options.fontColor || "#ffffff";
+  const margin = Math.round(Math.max(12, Math.min(imgWidth, imgHeight) * 0.03));
 
-  let pipeline = sharp(inputBuffer);
+  let overlay: sharp.OverlayOptions;
 
   if (options.position === "tile") {
-    // For tile mode, create a repeated pattern
-    const tileSize = 200;
-    let tileBuffer: Buffer;
-    if (options.type === "text" && options.text) {
-      const fontSize = options.fontSize || 48;
-      const fontColor = options.fontColor || "#ffffff";
-      const escapedText = options.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-      const tileSvg = `<svg width="${tileSize}" height="${tileSize}">
-        <style>
-          .watermark {
-            fill: ${fontColor};
-            opacity: ${options.opacity};
-            font-size: ${fontSize}px;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-          }
-        </style>
-        <text class="watermark"
-          x="${tileSize / 2}"
-          y="${tileSize / 2 + fontSize / 3}"
-          text-anchor="middle"
-          ${options.rotation ? `transform="rotate(${options.rotation}, ${tileSize / 2}, ${tileSize / 2})"` : ""}
-        >${escapedText}</text>
-      </svg>`;
-      tileBuffer = Buffer.from(tileSvg);
-    } else if (options.type === "image" && options.watermarkImageBuffer) {
-      tileBuffer = await sharp(options.watermarkImageBuffer)
-        .resize(tileSize, tileSize, { fit: "inside" })
-        .ensureAlpha()
-        .composite([{
-          input: Buffer.from([0, 0, 0, Math.round(options.opacity * 255)]),
-          raw: { width: 1, height: 1, channels: 4 },
-          tile: true,
-          blend: "dest-in",
-        }])
-        .toBuffer();
-    } else {
-      // No valid watermark source for tiling — return the image unmodified
-      const output = await sharp(inputBuffer).toBuffer();
-      return { buffer: output, info: { format: metadata.format || "png", width: imgWidth, height: imgHeight, size: output.length } };
-    }
+    // Repeated pattern across the whole picture.
+    const tileSize = isText
+      ? Math.max(160, Math.round(fontSize * Math.max(4, (options.text!.length + 2) * 0.7)))
+      : Math.max(64, Math.round(Math.min(imgWidth, imgHeight) * 0.25));
 
-    pipeline = pipeline.composite([{
-      input: tileBuffer,
-      tile: true,
+    const tile = isText
+      ? textSvg({
+          width: tileSize,
+          height: tileSize,
+          text: options.text!,
+          fontSize,
+          fontColor,
+          opacity: options.opacity,
+          rotation: options.rotation,
+          x: tileSize / 2,
+          y: tileSize / 2 + fontSize / 3,
+          anchor: "middle",
+        })
+      : await imageOverlay(options.watermarkImageBuffer!, tileSize, tileSize, options.opacity);
+
+    overlay = { input: tile, tile: true, gravity: "northwest" };
+  } else if (isText) {
+    // Full-size transparent canvas with the text placed at the right spot.
+    overlay = {
+      input: textSvg({
+        width: imgWidth,
+        height: imgHeight,
+        text: options.text!,
+        fontSize,
+        fontColor,
+        opacity: options.opacity,
+        rotation: options.rotation,
+        x: getTextX(options.position, imgWidth, margin),
+        y: getTextY(options.position, imgHeight, fontSize, margin),
+        anchor: getTextAnchor(options.position),
+      }),
       gravity: "northwest",
-    }]);
-  } else if (options.type === "text") {
-    // Text SVG overlay is already full-size with positioned text — use northwest for 1:1 alignment
-    pipeline = pipeline.composite([{
-      input: overlayBuffer,
-      gravity: "northwest" as sharp.Gravity,
-    }]);
+    };
   } else {
-    // Image watermark is smaller — use gravity for positioning
-    pipeline = pipeline.composite([{
-      input: overlayBuffer,
-      gravity: gravity as sharp.Gravity,
-    }]);
+    // Logo at most 30% of the picture, placed with gravity.
+    const logo = await imageOverlay(
+      options.watermarkImageBuffer!,
+      Math.round(imgWidth * 0.3),
+      Math.round(imgHeight * 0.3),
+      options.opacity
+    );
+    overlay = { input: logo, gravity: getGravity(options.position) as sharp.Gravity };
   }
 
-  const format = metadata.format || "png";
-  const output = await pipeline.toFormat(format as keyof sharp.FormatEnum).toBuffer();
+  const format = outputFormatFor(metadata.format);
+  const output = await sharp(inputBuffer)
+    .rotate()
+    .composite([overlay])
+    .toFormat(format)
+    .toBuffer();
   const outInfo = await sharp(output).metadata();
 
   return {
@@ -160,15 +180,15 @@ function getGravity(position: string): string {
   return map[position] || "southeast";
 }
 
-function getTextX(position: string, width: number): number {
-  if (position.includes("left")) return 20;
-  if (position.includes("right")) return width - 20;
+function getTextX(position: string, width: number, margin: number): number {
+  if (position.includes("left")) return margin;
+  if (position.includes("right")) return width - margin;
   return width / 2;
 }
 
-function getTextY(position: string, height: number, fontSize: number): number {
-  if (position.includes("top")) return fontSize + 20;
-  if (position.includes("bottom")) return height - 20;
+function getTextY(position: string, height: number, fontSize: number, margin: number): number {
+  if (position.includes("top")) return fontSize + margin;
+  if (position.includes("bottom")) return height - margin;
   return height / 2 + fontSize / 3;
 }
 

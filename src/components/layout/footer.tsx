@@ -1,15 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-
-const toolLinks = [
-  { href: "/convert", label: "Convert" },
-  { href: "/remove-bg", label: "Remove BG" },
-  { href: "/resize", label: "Resize" },
-  { href: "/compress", label: "Compress" },
-  { href: "/watermark", label: "Watermark" },
-  { href: "/filters", label: "Filters" },
-  { href: "/metadata", label: "Metadata" },
-];
+import { TOOLS, FILE_RETENTION_HOURS } from "@/lib/constants";
 
 export function Footer() {
   return (
@@ -18,12 +9,12 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-[1.2fr_1fr]">
           {/* Brand column */}
           <div>
-            <Link href="/">
+            <Link href="/" aria-label="ImageForge home">
               <Logo size="lg" />
             </Link>
             <p className="mt-3 max-w-65 text-sm leading-relaxed text-muted-foreground">
-              Fast, private image tools. Convert, compress, resize, and
-              more — all in one place.
+              Free image tools that run in your browser. Uploads are deleted
+              after {FILE_RETENTION_HOURS} hours.
             </p>
             <p className="mt-4 text-xs text-muted-foreground">
               A{" "}
@@ -43,13 +34,13 @@ export function Footer() {
           <div>
             <h4 className="font-heading text-sm font-semibold">Tools</h4>
             <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2">
-              {toolLinks.map((link) => (
-                <li key={link.href}>
+              {TOOLS.map((tool) => (
+                <li key={tool.href}>
                   <Link
-                    href={link.href}
+                    href={tool.href}
                     className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    {link.label}
+                    {tool.shortLabel}
                   </Link>
                 </li>
               ))}
@@ -87,6 +78,12 @@ export function Footer() {
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               Terms
+            </a>
+            <a
+              href="mailto:support@kaflabs.com"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Support
             </a>
           </div>
         </div>

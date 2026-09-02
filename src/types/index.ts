@@ -4,8 +4,16 @@ export type { ProcessingType, ProcessingStatus };
 
 export interface ToolDefinition {
   id: string;
+  /** Short name used on cards and in the dashboard. */
   name: string;
+  /** Page title and H1, e.g. "Image Converter". */
+  title: string;
+  /** Label for tight spaces such as the header and footer. */
+  shortLabel: string;
+  /** One or two sentences shown on the tool card and page. */
   description: string;
+  /** Longer text for the meta description tag. */
+  seoDescription: string;
   href: string;
   icon: string;
   requiresAuth: boolean;

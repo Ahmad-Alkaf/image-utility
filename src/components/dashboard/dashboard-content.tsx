@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -19,17 +20,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DownloadButton } from "@/components/shared/download-button";
-import {
-  ArrowRightLeft,
-  Eraser,
-  Maximize2,
-  FileDown,
-  Stamp,
-  SlidersHorizontal,
-  Info,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { JOB_TYPE_ICONS } from "@/components/shared/tool-icons";
+import { FILE_RETENTION_MS } from "@/lib/constants";
+import { formatFileSize } from "@/lib/format";
 
 interface Job {
   id: string;
@@ -43,30 +37,28 @@ interface Job {
   completedAt: string | null;
   processingTimeMs: number | null;
   downloadToken: string | null;
+  filesDeletedAt: string | null;
 }
 
 interface DashboardContentProps {
   initialJobs: Job[];
 }
 
-const TOOL_ICONS: Record<string, typeof ArrowRightLeft> = {
-  CONVERT: ArrowRightLeft,
-  REMOVE_BG: Eraser,
-  RESIZE: Maximize2,
-  COMPRESS: FileDown,
-  WATERMARK: Stamp,
-  FILTERS: SlidersHorizontal,
-  METADATA_STRIP: Info,
-};
-
 const TOOL_LABELS: Record<string, string> = {
   CONVERT: "Convert",
-  REMOVE_BG: "Remove BG",
+  REMOVE_BG: "Remove background",
   RESIZE: "Resize",
   COMPRESS: "Compress",
   WATERMARK: "Watermark",
   FILTERS: "Filters",
-  METADATA_STRIP: "Metadata",
+  METADATA_STRIP: "Remove metadata",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  COMPLETED: "Completed",
+  PROCESSING: "Processing",
+  PENDING: "Pending",
+  FAILED: "Failed",
 };
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -76,14 +68,8 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   FAILED: "destructive",
 };
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+  return new Date(dateStr).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -97,6 +83,8 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
+  // Snapshot of "now" taken once per mount, so rendering stays pure.
+  const [now] = useState(() => Date.now());
 
   const filtered = useMemo(() => {
     return initialJobs.filter((job) => {
@@ -108,40 +96,50 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
 
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const hasAnyJobs = initialJobs.length > 0;
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v ?? "all"); setPage(0); }}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="All tools" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All tools</SelectItem>
-            {Object.entries(TOOL_LABELS).map(([key, label]) => (
-              <SelectItem key={key} value={key}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {hasAnyJobs && (
+        <div className="flex flex-wrap gap-3">
+          <Select
+            value={typeFilter}
+            onValueChange={(v) => { setTypeFilter(v ?? "all"); setPage(0); }}
+            items={{ all: "All tools", ...TOOL_LABELS }}
+          >
+            <SelectTrigger className="w-44" aria-label="Filter by tool">
+              <SelectValue placeholder="All tools" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All tools</SelectItem>
+              {Object.entries(TOOL_LABELS).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v ?? "all"); setPage(0); }}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
-            <SelectItem value="PROCESSING">Processing</SelectItem>
-            <SelectItem value="PENDING">Pending</SelectItem>
-            <SelectItem value="FAILED">Failed</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => { setStatusFilter(v ?? "all"); setPage(0); }}
+            items={{ all: "All statuses", ...STATUS_LABELS }}
+          >
+            <SelectTrigger className="w-40" aria-label="Filter by status">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
-      {/* Table */}
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -151,27 +149,36 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
               <TableHead>Status</TableHead>
               <TableHead className="hidden sm:table-cell">Size</TableHead>
               <TableHead className="hidden md:table-cell">Date</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead className="text-right">Result</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paged.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  No processing jobs found.
+                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                  {hasAnyJobs ? (
+                    "No jobs match these filters."
+                  ) : (
+                    <span>
+                      No jobs yet.{" "}
+                      <Link href="/convert" className="underline underline-offset-2 hover:text-foreground">
+                        Run a tool
+                      </Link>{" "}
+                      and the result shows up here.
+                    </span>
+                  )}
                 </TableCell>
               </TableRow>
             ) : (
               paged.map((job) => {
-                const Icon = TOOL_ICONS[job.type] || Info;
+                const Icon = JOB_TYPE_ICONS[job.type] || Info;
                 const isExpired =
-                  new Date().getTime() -
-                    new Date(job.createdAt).getTime() >
-                  24 * 60 * 60 * 1000;
+                  job.filesDeletedAt !== null ||
+                  now - new Date(job.createdAt).getTime() > FILE_RETENTION_MS;
 
                 return (
                   <TableRow key={job.id}>
-                    <TableCell className="max-w-50 truncate font-medium">
+                    <TableCell className="max-w-50 truncate font-medium" title={job.inputFileName}>
                       {job.inputFileName}
                     </TableCell>
                     <TableCell>
@@ -184,19 +191,16 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
                     </TableCell>
                     <TableCell>
                       <Badge variant={STATUS_VARIANT[job.status] || "outline"}>
-                        {job.status}
+                        {STATUS_LABELS[job.status] || job.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">
                       {formatFileSize(job.inputFileSize)}
-                      {job.outputFileSize && (
-                        <span className="text-xs">
-                          {" "}
-                          → {formatFileSize(job.outputFileSize)}
-                        </span>
-                      )}
+                      {job.outputFileSize ? (
+                        <span className="text-xs"> to {formatFileSize(job.outputFileSize)}</span>
+                      ) : null}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground">
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
                       {formatDate(job.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -207,10 +211,8 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
                           variant="outline"
                           size="sm"
                         />
-                      ) : isExpired ? (
-                        <span className="text-xs text-muted-foreground">
-                          Expired
-                        </span>
+                      ) : job.status === "COMPLETED" ? (
+                        <span className="text-xs text-muted-foreground">Expired</span>
                       ) : null}
                     </TableCell>
                   </TableRow>
@@ -221,13 +223,11 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
         </Table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {page * PAGE_SIZE + 1}–
-            {Math.min((page + 1) * PAGE_SIZE, filtered.length)} of{" "}
-            {filtered.length}
+            Showing {page * PAGE_SIZE + 1} to{" "}
+            {Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}
           </p>
           <div className="flex gap-2">
             <Button
@@ -235,6 +235,7 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
               size="icon"
               disabled={page === 0}
               onClick={() => setPage((p) => p - 1)}
+              aria-label="Previous page"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -243,6 +244,7 @@ export function DashboardContent({ initialJobs }: DashboardContentProps) {
               size="icon"
               disabled={page >= totalPages - 1}
               onClick={() => setPage((p) => p + 1)}
+              aria-label="Next page"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

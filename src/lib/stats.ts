@@ -50,7 +50,9 @@ export async function getStats(): Promise<SiteStats> {
     cached = { data, expiresAt: Date.now() + CACHE_TTL_MS };
     return data;
   } catch (error) {
-    console.error("Stats error:", error);
+    // Expected during `next build` (no database). The home page hides the
+    // section when this throws.
+    console.error("Stats error:", error instanceof Error ? error.message : error);
     throw error;
   }
 }
