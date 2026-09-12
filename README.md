@@ -2,11 +2,24 @@
 
 Free online image tools by [KafLabs](https://kaflabs.com): convert, compress, resize and crop, watermark, filters, background removal, and a metadata viewer.
 
+Built and maintained by [Ahmad Alkaf](https://github.com/Ahmad-Alkaf).
+
+[View source](https://github.com/Ahmad-Alkaf/image-utility)
+
+![ImageForge home page with its image tools and public source link](docs/screenshots/home.jpg)
+
 - Next.js 16 (App Router), React 19, Tailwind 4, shadcn/base-ui
 - Image processing with [sharp](https://sharp.pixelplumbing.com/) in API routes
 - Background removal runs in the browser with `@imgly/background-removal` (WASM in a web worker)
 - Clerk for accounts, Prisma 7 + PostgreSQL for users and job history
 - Files live on disk (or S3/R2) and are deleted after 24 hours
+
+## Design decisions
+
+- Sharp handles server image processing through a shared request handler. Each tool supplies its own processing operation.
+- Background removal runs in a browser worker so that operation does not upload the selected image.
+- Temporary file storage supports disk or S3-compatible storage. Scheduled cleanup removes expired files while job history stays available.
+- A shared tool registry supplies labels and links across the interface.
 
 ## Local development
 
@@ -62,3 +75,11 @@ src/lib/cleanup.ts       24-hour retention job
 src/workers/             background-removal web worker
 prisma/                  schema and migrations
 ```
+
+## Checks and license
+
+Run `npm run typecheck`, `npm run lint`, and `npm test` before submitting a change.
+Vitest checks the tool registry, validation, errors, formatting, and rate limiter.
+Server processing also needs checks with local Clerk, database, and storage settings.
+
+The source is public under [PolyForm Noncommercial 1.0.0](LICENSE). See the license for permitted uses and conditions.

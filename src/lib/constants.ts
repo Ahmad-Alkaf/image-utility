@@ -1,6 +1,8 @@
 import type { ToolDefinition, ImageFormat } from "@/types";
 
 export const SITE_NAME = "ImageForge";
+export const GITHUB_REPOSITORY_URL = "https://github.com/Ahmad-Alkaf/image-utility";
+export const GITHUB_PROFILE_URL = "https://github.com/Ahmad-Alkaf";
 export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://imagesforge.com";
 export const SITE_DESCRIPTION =
   "Free online image tools. Convert, compress, resize, crop, watermark, and adjust images, remove backgrounds, and inspect or strip metadata. No software to install.";

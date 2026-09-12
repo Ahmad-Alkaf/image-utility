@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { TOOLS, FILE_RETENTION_HOURS } from "@/lib/constants";
+import { TOOLS, FILE_RETENTION_HOURS, GITHUB_REPOSITORY_URL } from "@/lib/constants";
 
 export function Footer() {
   return (
@@ -62,9 +62,15 @@ export function Footer() {
             </a>
             . All rights reserved.
           </span>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+            <Link href="/about" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+              About
+            </Link>
+            <a href={GITHUB_REPOSITORY_URL} className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+              Source code
+            </a>
             <a
-              href="https://kaflabs.com/privacy.html"
+              href="https://kaflabs.com/privacy"
               target="_blank"
               rel="noopener"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
@@ -72,7 +78,7 @@ export function Footer() {
               Privacy
             </a>
             <a
-              href="https://kaflabs.com/terms.html"
+              href="https://kaflabs.com/terms"
               target="_blank"
               rel="noopener"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"

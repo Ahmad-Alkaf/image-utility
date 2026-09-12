@@ -12,6 +12,7 @@ import {
   SITE_NAME,
   SITE_URL,
   SITE_DESCRIPTION,
+  GITHUB_REPOSITORY_URL,
 } from "@/lib/constants";
 import { getStats, areStatsWorthShowing } from "@/lib/stats";
 import { formatBytes, formatCount } from "@/lib/format";
@@ -220,6 +221,13 @@ export default function HomePage() {
                 Create a free account
               </Button>
             </div>
+
+            <a
+              href={GITHUB_REPOSITORY_URL}
+              className="inline-flex min-h-11 items-center rounded-sm text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4"
+            >
+              View source on GitHub
+            </a>
 
             <div className="animate-fade-in-up flex flex-wrap justify-center gap-1.5 pt-1 [animation-delay:320ms]">
               {SUPPORTED_FORMATS.map((fmt) => (
